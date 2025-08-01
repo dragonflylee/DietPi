@@ -14,13 +14,13 @@ AUTO_SETUP_GLOBAL_PASSWORD=dietpi
 
 ##### Language/Regional options #####
 # Locale e.g.: "en_GB.UTF-8" / "de_DE.UTF-8" | One entry and UTF-8 ONLY!
-AUTO_SETUP_LOCALE=C.UTF-8
+AUTO_SETUP_LOCALE=zh_CN.UTF-8
 
 # Keyboard layout e.g.: "gb" / "us" / "de" / "fr"
-AUTO_SETUP_KEYBOARD_LAYOUT=gb
+AUTO_SETUP_KEYBOARD_LAYOUT=us
 
 # Time zone e.g.: "Europe/London" / "America/New_York" | Full list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-AUTO_SETUP_TIMEZONE=UTC
+AUTO_SETUP_TIMEZONE=Asia/Shanghai
 
 ##### Network options #####
 # Enable Ethernet or WiFi adapter: 1=enable | 0=disable
@@ -31,14 +31,14 @@ AUTO_SETUP_NET_WIFI_ENABLED=0
 
 # WiFi country code: 2 capital letter value (e.g. GB US DE JP): https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 # - NB: This choice may be overridden if the WiFi access point sends a country code.
-AUTO_SETUP_NET_WIFI_COUNTRY_CODE=GB
+AUTO_SETUP_NET_WIFI_COUNTRY_CODE=CN
 
 # Enter your static network details below, if applicable.
 AUTO_SETUP_NET_USESTATIC=0
 AUTO_SETUP_NET_STATIC_IP=192.168.0.100
 AUTO_SETUP_NET_STATIC_MASK=255.255.255.0
 AUTO_SETUP_NET_STATIC_GATEWAY=192.168.0.1
-AUTO_SETUP_NET_STATIC_DNS=9.9.9.9 149.112.112.112
+AUTO_SETUP_NET_STATIC_DNS=223.5.5.5 114.114.114.114
 
 # Set to "1" to convert DHCP leased network settings into static settings automatically on first boot.
 AUTO_SETUP_DHCP_TO_STATIC=0
@@ -115,7 +115,7 @@ AUTO_SETUP_WEB_SERVER_INDEX=0
 # - Desktop preference: 0=LXDE | -1=Xfce | -2=MATE | -3=LXQt | -4=GNUstep
 AUTO_SETUP_DESKTOP_INDEX=0
 # - Browser preference: 0=None | -1=Firefox | -2=Chromium
-AUTO_SETUP_BROWSER_INDEX=-1
+AUTO_SETUP_BROWSER_INDEX=-2
 
 # DietPi-Autostart: 0=Console | 7=Console autologin | 1=Kodi | 2=Desktop autologin | 16=Desktop | 4=OpenTyrian | 5=DietPi-CloudShell | 6=Amiberry fast boot | 8=Amiberry standard boot | 9=DDX-Rebirth | 10=CAVA Spectrum | 11=Chromium kiosk | 14=Custom script (background) | 17=Custom script (foreground)
 # - This will be effective on 2nd boot, after first run update and installs have been done.
@@ -124,7 +124,7 @@ AUTO_SETUP_AUTOSTART_TARGET_INDEX=0
 # Autologin user name
 # - This user must exist before first run installs, otherwise it will be reverted to root.
 # - Applies to all autostart options but: 0, 6, 14 and 16
-AUTO_SETUP_AUTOSTART_LOGIN_USER=root
+AUTO_SETUP_AUTOSTART_LOGIN_USER=dietpi
 
 ##### Non-interactive first run setup #####
 # On first boot, run updates, initial setup, and optional software installs without any user interaction.
@@ -137,20 +137,20 @@ AUTO_SETUP_AUTOMATED=0
 # - Add as many software IDs as you wish, separated by space.
 # - DietPi will automatically install all dependencies, like ALSA/X11 for desktops, a webserver for web applications etc.
 # - E.g. the following (without the leading "#") will install the LXDE desktop, the TigerVNC server and the Kodi media centre automatically on first boot:
-#AUTO_SETUP_INSTALL_SOFTWARE_ID=23 28 31
+AUTO_SETUP_INSTALL_SOFTWARE_ID=0 162
 
 #------------------------------------------------------------------------------------------------------
 ##### Misc DietPi program settings #####
 #------------------------------------------------------------------------------------------------------
 # DietPi-Survey: 1=opt in | 0=opt out | -1=ask on first call
 # - https://dietpi.com/docs/dietpi_tools/system_configuration/#dietpi-survey
-SURVEY_OPTED_IN=-1
+SURVEY_OPTED_IN=0
 
 #------------------------------------------------------------------------------------------------------
 ##### DietPi-Config settings #####
 #------------------------------------------------------------------------------------------------------
 # CPU Governor: schedutil | ondemand | interactive | conservative | powersave | performance
-CONFIG_CPU_GOVERNOR=schedutil
+CONFIG_CPU_GOVERNOR=powersave
 # Ondemand Sampling Rate | Min value: 10000 microseconds (10 ms)
 CONFIG_CPU_ONDEMAND_SAMPLE_RATE=25000
 # Ondemand Sampling Down Factor: Sampling Rate * Down Factor / 1000 = ms (40 = 1000 ms when sampling rate is 25000)
@@ -194,9 +194,9 @@ CONFIG_G_CHECK_URL_TIMEOUT=10
 CONFIG_G_CHECK_URL_ATTEMPTS=2
 # General connection and DNS testing
 # - IPv4 address to ping when checking network connectivity. Default: 9.9.9.9 (Quad9 DNS IP)
-CONFIG_CHECK_CONNECTION_IP=9.9.9.9
+CONFIG_CHECK_CONNECTION_IP=223.5.5.5
 # - IPv6 address to ping when checking network connectivity. Default: 2620:fe::fe (Quad9 DNS IP)
-CONFIG_CHECK_CONNECTION_IPV6=2620:fe::fe
+CONFIG_CHECK_CONNECTION_IPV6=2400:3200::1
 # - Domain to resolve when checking DNS resolver. Default: dietpi.com
 CONFIG_CHECK_DNS_DOMAIN=dietpi.com
 
@@ -206,7 +206,7 @@ CONFIG_CHECK_DIETPI_UPDATES=1
 
 # Daily check for APT package updates: 0=disable | 1=check only | 2=check and upgrade automatically
 # - Upgrade logs can be found at: /var/tmp/dietpi/logs/dietpi-update_apt.log
-CONFIG_CHECK_APT_UPDATES=1
+CONFIG_CHECK_APT_UPDATES=2
 
 # Network time sync: 0=disabled | 1=boot only | 2=boot + daily | 3=boot + hourly | 4=Daemon + Drift
 CONFIG_NTP_MODE=2
@@ -223,9 +223,9 @@ CONFIG_ENABLE_IPV6=1
 
 # APT mirrors which are applied to /etc/apt/sources.list | Values here will also be applied during 1st run setup
 # - Raspbian: https://www.raspbian.org/RaspbianMirrors
-CONFIG_APT_RASPBIAN_MIRROR=http://raspbian.raspberrypi.com/raspbian
+CONFIG_APT_RASPBIAN_MIRROR=https://mirrors.aliyun.com/raspberrypi
 # - Debian: https://www.debian.org/mirror/official#list
-CONFIG_APT_DEBIAN_MIRROR=https://deb.debian.org/debian
+CONFIG_APT_DEBIAN_MIRROR=https://mirrors.aliyun.com/debian
 
 # NTP server(s) applied to /etc/systemd/timesyncd.conf
 # - "default": Use the NTP server(s) provided via DHCP, else the debian.pool.ntp.org NTP pool.
@@ -233,7 +233,7 @@ CONFIG_APT_DEBIAN_MIRROR=https://deb.debian.org/debian
 # - To use another public NTP pool, see the full list at: https://www.ntppool.org/zone/@
 #   Use the pool domain without leading integer and dot (without "0."), like "debian.pool.ntp.org", "pool.ntp.org" or "uk.pool.ntp.org".
 # - You can also use a custom IP address, hostname or any combination of space-separated IP addresses, hostnames and NTP pool domains.
-CONFIG_NTP_MIRROR=default
+CONFIG_NTP_MIRROR=cn.pool.ntp.org
 
 #------------------------------------------------------------------------------------------------------
 ##### DietPi-Software settings #####
@@ -252,7 +252,7 @@ CONFIG_NTP_MIRROR=default
 #	0=Allow password logins for all users, including root
 #	root=Disable password login for root user only
 #	1=Disable password logins for all users, assure that you have a valid SSH key applied!
-SOFTWARE_DISABLE_SSH_PASSWORD_LOGINS=0
+SOFTWARE_DISABLE_SSH_PASSWORD_LOGINS=root
 
 # WireGuard
 # - Whether to install WireGuard as "Server" or "Client", relevant for unattended installs only, else a menu is shown
@@ -352,7 +352,7 @@ SOFTWARE_ROONSERVER_EARLYACCESS=0
 ##### Dev settings #####
 #------------------------------------------------------------------------------------------------------
 DEV_GITBRANCH=master
-DEV_GITOWNER=MichaIng
+DEV_GITOWNER=dragonflylee
 
 #------------------------------------------------------------------------------------------------------
 ##### Settings, automatically added by dietpi-update #####

@@ -3232,11 +3232,15 @@ Signed-By: /etc/apt/keyrings/dietpi-adoptium.asc"
 			# Reinstall: Remove previous instance
 			[[ -d '/usr/local/go' ]] && G_EXEC rm -R /usr/local/go
 
-			Download_Install "https://dl.google.com/go/$file" /usr/local
+			Download_Install "https://go.dev/dl/$file" /usr/local
 
-			# Add to PATH, but do not overwrite existing script since we did set GOPATH until v8.9 and do not want to cause a breaking change for existing installs
-			# shellcheck disable=SC2016
-			[[ -f '/etc/bashrc.d/go.sh' ]] || G_EXEC eval 'echo '\''export PATH="$PATH:/usr/local/go/bin"'\'' > /etc/bashrc.d/go.sh'
+			# Export Go path variables
+			cat << '_EOF_' > /etc/bashrc.d/go.sh
+#!/bin/dash
+export GOPATH=$HOME/go
+export GOPROXY=goproxy.cn
+export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+_EOF_
 			# shellcheck disable=SC1091
 			. /etc/bashrc.d/go.sh
 
@@ -10621,6 +10625,7 @@ _EOF_
 			G_AGI "${packages[@]}"
 			G_EXEC systemctl unmask docker
 			G_EXEC systemctl start docker.socket
+			G_EXEC adduser dietpi docker
 
 			# Change Docker service type to "simple": https://github.com/MichaIng/DietPi/issues/2238#issuecomment-439474766
 			G_EXEC mkdir -p /lib/systemd/system/docker.service.d
@@ -10630,17 +10635,17 @@ _EOF_
 			# - Move Docker containers to dietpi_userdata
 			# - Log to systemd-journald (journalctl) by default with reduced log level: https://github.com/MichaIng/DietPi/issues/2388
 			#	+ containerd: https://github.com/docker/docker.github.io/issues/9091
-			G_EXEC mkdir -p /mnt/dietpi_userdata/docker-data
 			if [[ -f '/etc/docker/daemon.json' ]]
 			then
-				GCI_PRESERVE=1 G_CONFIG_INJECT '"data-root":' '    "data-root": "/mnt/dietpi_userdata/docker-data",' /etc/docker/daemon.json '^\{([[:space:]]|$)'
+				GCI_PRESERVE=1 G_CONFIG_INJECT '"bridge":' '    "none",' /etc/docker/daemon.json '^\{([[:space:]]|$)'
 				GCI_PRESERVE=1 G_CONFIG_INJECT '"log-driver":' '    "log-driver": "journald",' /etc/docker/daemon.json '^\{([[:space:]]|$)'
 				GCI_PRESERVE=1 G_CONFIG_INJECT '"log-level":' '    "log-level": "warn",' /etc/docker/daemon.json '^\{([[:space:]]|$)'
 				GCI_PRESERVE=1 G_CONFIG_INJECT '"debug":' '    "debug": false,' /etc/docker/daemon.json '^\{([[:space:]]|$)'
 			else
 				G_EXEC mkdir -p /etc/docker
 				echo '{
-    "data-root": "/mnt/dietpi_userdata/docker-data",
+		"registry-mirrors": [ "https://docker.1ms.run" ],
+    "bridge": "none",
     "log-driver": "journald",
     "log-level": "warn",
     "debug": false

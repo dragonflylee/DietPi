@@ -487,6 +487,11 @@
 				G_HW_MODEL_NAME='ROCK 3A'
 				G_HW_CPUID=10
 
+			elif (( $G_HW_MODEL == 130 ))
+			then
+				G_HW_MODEL_NAME='Hinlink NAS'
+				G_HW_CPUID=10
+
 			elif (( $G_HW_MODEL == 76 ))
 			then
 				G_HW_MODEL_NAME='NanoPi R5S/R5C'

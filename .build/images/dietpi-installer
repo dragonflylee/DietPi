@@ -2134,7 +2134,7 @@ _EOF_'
 		fi
 
 		G_DIETPI-NOTIFY 2 'Configuring locales:'
-		/boot/dietpi/func/dietpi-set_software locale 'C.UTF-8'
+		/boot/dietpi/func/dietpi-set_software locale 'zh_CN.UTF-8'
 
 		G_DIETPI-NOTIFY 2 'Configuring time zone:'
 		G_EXEC ln -snf /usr/share/zoneinfo/UTC /etc/localtime
@@ -2143,7 +2143,7 @@ _EOF_'
 		if (( $G_HW_MODEL != 75 ))
 		then
 			G_DIETPI-NOTIFY 2 'Configuring keyboard:'
-			echo -e 'XKBMODEL="pc105"\nXKBLAYOUT="gb"' > /etc/default/keyboard
+			echo -e 'XKBMODEL="pc105"\nXKBLAYOUT="us"' > /etc/default/keyboard
 			dpkg-reconfigure -f noninteractive keyboard-configuration # Keyboard must be plugged in for this to work!
 
 			G_DIETPI-NOTIFY 2 'Configuring console:' # This can be wrong, e.g. when selecting a non-UTF-8 locale during Debian installer

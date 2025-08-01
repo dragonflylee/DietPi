@@ -87,7 +87,7 @@
 
 	Get_Remote_Version(){
 
-		local url="https://raw.githubusercontent.com/$GITOWNER_TARGET/DietPi/$GITBRANCH_TARGET/.update/version"
+		local url="https://gh-proxy.com/raw.githubusercontent.com/$GITOWNER_TARGET/DietPi/$GITBRANCH_TARGET/.update/version"
 
 		G_DIETPI-NOTIFY 2 "Getting latest version from: $url"
 		if curl -sSfLO "$url"; then

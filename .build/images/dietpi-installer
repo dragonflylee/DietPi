@@ -1302,6 +1302,8 @@ _EOF_
 			/boot/dietpi/func/dietpi-set_software apt clean
 			G_AGUP
 
+			G_CONFIG_INJECT 'AUTO_SETUP_NET_HOSTNAME=' "AUTO_SETUP_NET_HOSTNAME=$model" /boot/dietpi.txt
+
 			# Install initramfs-tools first to have an initramfs generated on kernel install, and configure it to use zstd if supported for better compression and faster decompression
 			[[ $kernel == 's5p6818' ]] || zstd=('zstd')
 			G_AGI initramfs-tools u-boot-tools armbian-firmware "${zstd[@]}"
@@ -1310,8 +1312,8 @@ _EOF_
 			# Install testing kernel build if requested
 			if (( $TEST_KERNEL ))
 			then
-				G_EXEC_OUTPUT=1 G_EXEC curl -fo package1.deb "https://dietpi.com/downloads/binaries/testing/linux-image-$branch-$kernel.deb"
-				G_EXEC_OUTPUT=1 G_EXEC curl -fo package2.deb "https://dietpi.com/downloads/binaries/testing/linux-dtb-$branch-$kernel.deb"
+				G_EXEC_OUTPUT=1 G_EXEC curl -fLo package1.deb "https://github.com/$G_GITOWNER/DietPi/releases/download/kernel/linux-image-$branch-$kernel.deb"
+				G_EXEC_OUTPUT=1 G_EXEC curl -fLo package2.deb "https://github.com/$G_GITOWNER/DietPi/releases/download/kernel/linux-dtb-$branch-$kernel.deb"
 				G_EXEC_OUTPUT=1 G_EXEC dpkg -i package[12].deb
 				G_EXEC rm package[12].deb
 			fi
@@ -1319,7 +1321,7 @@ _EOF_
 			# Install testing U-Boot build if requested
 			if (( $TEST_UBOOT ))
 			then
-				G_EXEC_OUTPUT=1 G_EXEC curl -fo package.deb "https://dietpi.com/downloads/binaries/testing/linux-u-boot-$model-$branch.deb"
+				G_EXEC_OUTPUT=1 G_EXEC curl -fLo package.deb "https://github.com/$G_GITOWNER/DietPi/releases/download/uboot/linux-u-boot-$model-$branch.deb"
 				G_EXEC_OUTPUT=1 G_EXEC dpkg -i package.deb
 				G_EXEC rm package.deb
 			fi
@@ -2086,6 +2088,9 @@ _EOF_'
 ::1 localhost ip6-localhost ip6-loopback
 ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
+
+185.199.109.133 raw.githubusercontent.com avatars.githubusercontent.com
+185.199.111.133 user-images.githubusercontent.com objects.githubusercontent.com
 _EOF_'
 		G_EXEC_DESC='Configuring htop'
 		G_EXEC eval 'cat << '\''_EOF_'\'' > /etc/htoprc
@@ -2205,7 +2210,7 @@ _EOF_'
 		fi
 
 		G_DIETPI-NOTIFY 2 'Configuring locales:'
-		/boot/dietpi/func/dietpi-set_software locale 'C.UTF-8'
+		/boot/dietpi/func/dietpi-set_software locale 'zh_CN.UTF-8'
 
 		G_DIETPI-NOTIFY 2 'Configuring time zone:'
 		G_EXEC rm -f /etc/{localtime,timezone}
@@ -2215,7 +2220,7 @@ _EOF_'
 		if (( $G_HW_MODEL != 75 ))
 		then
 			G_DIETPI-NOTIFY 2 'Configuring keyboard:'
-			echo -e 'XKBMODEL="pc105"\nXKBLAYOUT="gb"' > /etc/default/keyboard
+			echo -e 'XKBMODEL="pc105"\nXKBLAYOUT="us"' > /etc/default/keyboard
 			dpkg-reconfigure -f noninteractive keyboard-configuration # Keyboard must be plugged in for this to work!
 
 			G_DIETPI-NOTIFY 2 'Configuring console:' # This can be wrong, e.g. when selecting a non-UTF-8 locale during Debian installer

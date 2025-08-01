@@ -16,7 +16,11 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.inputs.buildargs }}
   cancel-in-progress: true
-permissions: {}
+permissions:
+  contents: write
+defaults:
+  run:
+    working-directory: /dev/shm
 jobs:
   prep:
     outputs:
@@ -143,20 +147,6 @@ jobs:
     name: "Build: ${{ matrix.buildargs }}"
     runs-on: ${{ ( contains(matrix.buildargs, '-m 20') || contains(matrix.buildargs, '-m 21') || contains(matrix.buildargs, '-a 10') ) && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
     steps:
-    - name: Generate upload script
-      run: |
-        sudo dash -c 'umask 377; echo '\''${{ secrets.KNOWN_HOSTS }}'\'' > /root/.ssh/known_hosts; echo '\''${{ secrets.SSH_KEY }}'\'' > /root/.ssh/id_ed25519; > upload.sh; chmod 0711 upload.sh'
-        echo '#!/bin/dash
-        set -e
-        urls="\"https://dietpi.com/downloads/images/testing/\""
-        for i in "$@"; do urls="$urls,\"https://dietpi.com/downloads/images/testing/${i##*/}\""; done
-        IFS=,
-        curl -T "{$*}" --key /root/.ssh/id_ed25519 '\''${{ secrets.UPLOAD_URL }}testing/'\''
-        curl -H '\''Authorization: Bearer ${{ secrets.CF_TOKEN }}'\'' -H '\''Content-Type: application/json'\'' -d "{\"files\":[$urls]}" '\''https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE }}/purge_cache'\''
-        echo' | sudo tee upload.sh > /dev/null
-        sudo gpg --batch --import << _EOF_
-        ${{ secrets.GPG_KEY }}
-        _EOF_
     - name: Run DietPi-Build
       run: |
         sudo systemctl --now mask ssh ssh.socket systemd-resolved
@@ -164,4 +154,14 @@ jobs:
         buildargs='${{ matrix.buildargs }}'
         [ "${{ github.event.inputs.testkernel }}" == 'true' ] && buildargs="$buildargs --test-kernel"
         [ "${{ github.event.inputs.testuboot }}" == 'true' ] && buildargs="$buildargs --test-uboot"
-        sudo bash -c "G_GITOWNER=$GITHUB_REPOSITORY_OWNER G_GITBRANCH=$GITHUB_REF_NAME; $(curl -sSf "https://raw.githubusercontent.com/$GITHUB_REPOSITORY_OWNER/DietPi/$GITHUB_REF_NAME/.build/images/dietpi-build" || echo false)" -- $buildargs --sign '${{ secrets.GPG_PASS }}' --upload-script 'upload.sh'
+        sudo bash -c "G_GITOWNER=$GITHUB_REPOSITORY_OWNER G_GITBRANCH=$GITHUB_REF_NAME; $(curl -sSf "https://raw.githubusercontent.com/$GITHUB_REPOSITORY_OWNER/DietPi/$GITHUB_REF_NAME/.build/images/dietpi-build" || echo false)" -- $buildargs
+    - name: Release and Upload Assets
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: image
+        fail_on_unmatched_files: true
+        files: |
+          /dev/shm/DietPi_*.xz
+          /dev/shm/DietPi_*.iso
+        body: |
+          ![download](https://img.shields.io/github/downloads/${{ github.repository }}/image/total?label=Downloads)

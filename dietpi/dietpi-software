@@ -12254,6 +12254,7 @@ User=lazylibrarian
 UMask=002
 LogsDirectory=lazylibrarian
 ExecStart=/opt/lazylibrarian/venv/bin/python /opt/lazylibrarian/LazyLibrarian.py --datadir=/mnt/dietpi_userdata/lazylibrarian --nolaunch
+ExitType=cgroup
 
 # Hardening
 ProtectSystem=strict

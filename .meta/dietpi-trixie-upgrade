@@ -117,10 +117,18 @@ then
 	G_EXEC touch /etc/default/icecast2
 fi
 
+local fix=()
+if dpkg --compare-versions "$(dpkg-query -Wf '${Version}' libgtk-3-common 2> /dev/null)" gt '1:3'
+then
+	G_DIETPI-NOTIFY 2 'Purging conflicting GTK 3 packages from Raspberry Pi APT repository'
+	G_EXEC_OUTPUT=1 G_EXEC dpkg -P --force-depends gir1.2-gtk-3.0 libgtk-3-0 libgtk-3-common
+	fix=('-f')
+fi
+
 G_DIETPI-NOTIFY 2 'Applying the actual upgrade to Debian Trixie'
 /boot/dietpi/dietpi-services stop
 G_AGUP
-G_AGUG
+G_AGUG "${fix[@]}"
 G_AGDUG
 
 /boot/dietpi/func/dietpi-obtain_hw_model

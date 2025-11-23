@@ -8994,13 +8994,12 @@ _EOF_
 
 			# Config
 			G_EXEC mkdir -p /mnt/dietpi_userdata/aria2
-			[[ -f '/mnt/dietpi_userdata/aria2/aria2.conf' ]] || cat << _EOF_ > /mnt/dietpi_userdata/aria2/aria2.conf
+			[[ -f '/mnt/dietpi_userdata/aria2/aria2.conf' ]] || cat << _EOF_ > /mnt/dietpi_userdata/aria2/aria2.conf || exit 1
 # DietPi default aria2c options served as aria2.conf file via --conf-path
 # https://aria2.github.io/manual/en/html/aria2c.html#options
 
 # Logging
-log=/var/log/aria2.log
-log-level=warn
+console-log-level=notice
 
 # Session
 always-resume=true
@@ -9047,20 +9046,14 @@ check-integrity=true
 seed-ratio=0.1
 seed-time=0
 _EOF_
-
-			# Pre-create log file
-			local fp_log=$(sed -n '/^[[:blank:]]*log=/{s/^[^=]*=//p;q}' /mnt/dietpi_userdata/aria2/aria2.conf)
-			[[ ${fp_log//\"} && ! -f $fp_log ]] && >> "$fp_log"
-
 			# Pre-create input file
 			local fp_input=$(sed -n '/^[[:blank:]]*input-file=/{s/^[^=]*=//p;q}' /mnt/dietpi_userdata/aria2/aria2.conf)
-			[[ ${fp_input//\"} && ! -f $fp_input ]] && >> "$fp_input"
+			[[ ${fp_input//\"} && ! -f $fp_input ]] && > "$fp_input"
 
 			# Permissions
-			G_EXEC chown -R aria2:root /mnt/dietpi_userdata/aria2 "$fp_input"
-			G_EXEC chown aria2:dietpi "$fp_log"
-			G_EXEC chmod 600 /mnt/dietpi_userdata/aria2/aria2.conf
-			unset -v fp_log fp_input
+			G_EXEC chown -R aria2:0 /mnt/dietpi_userdata/aria2 "$fp_input"
+			G_EXEC chmod 0600 /mnt/dietpi_userdata/aria2/aria2.conf
+			unset -v fp_input
 
 			# Service
 			cat << _EOF_ > /etc/systemd/system/aria2.service
@@ -12906,11 +12899,17 @@ _EOF_
 		if To_Uninstall 132 # Aria2
 		then
 			[[ -d '/var/www/aria2' ]] && G_EXEC rm -R /var/www/aria2
-			Remove_Service aria2 1 1
+			Remove_Service aria2 1
 			G_AGP aria2
-			[[ -d '/mnt/dietpi_userdata/aria2' ]] && G_EXEC rm -R /mnt/dietpi_userdata/aria2
+			# Remove input file
+			if [[ -f '/mnt/dietpi_userdata/aria2/aria2.conf' ]]
+			then
+				local fp_input=$(sed -n '/^[[:blank:]]*input-file=/{s/^[^=]*=//p;q}' /mnt/dietpi_userdata/aria2/aria2.conf)
+				[[ ${fp_input//\"} ]] && G_EXEC rm -f "$fp_input"
+				unset -v fp_input
+			fi
+			G_EXEC rm -Rf /mnt/dietpi_userdata/aria2
 			[[ -f '/mnt/dietpi_userdata/downloads/aria2.session' ]] && G_EXEC rm /mnt/dietpi_userdata/downloads/aria2.session
-			[[ -f '/usr/local/bin/aria2c' ]] && G_EXEC rm /usr/local/bin/aria2c # Previous
 		fi
 
 		if To_Uninstall 133 # YaCy

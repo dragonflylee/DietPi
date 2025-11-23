@@ -2656,6 +2656,23 @@ Patch_9_20()
 	# Software updates, migrations and patches
 	if [[ -f '/boot/dietpi/.installed' ]]
 	then
+		# Aria2
+		if grep -q '^[[:blank:]]*aSOFTWARE_INSTALL_STATE\[132\]=2' /boot/dietpi/.installed
+		then
+			if grep -q '^[[:blank:]]*log=/var/log/aria2.log' /mnt/dietpi_userdata/aria2/aria2.conf
+			then
+				G_DIETPI-NOTIFY 2 'Disabling redundant Aria2 file logging'
+				G_EXEC sed --follow-symlinks -i -e '/^[[:blank:]]*log=/var/log/aria2.log/c\console-log-level=notice' -e '/^[[:blank:]]*log-level=/d' /mnt/dietpi_userdata/aria2/aria2.conf
+				G_EXEC rm -f /var/log/aria2.log
+			fi
+			if [[ -f '/usr/local/bin/aria2c' ]]
+			then
+				G_DIETPI-NOTIFY 2 'Replacing ancient own aria2c builds used up to Debian Jessie'
+				G_AG_CHECK_INSTALL_PREREQ aria2
+				G_EXEC rm /usr/local/bin/aria2c
+			fi
+		fi
+
 		# Pi-hole v6 migration
 		# - /etc/pihole/pihole.toml indicates that Pi-hole has been upgraded to v6 already.
 		# - The /var/www/pihole symlink indicates that an instance installed via dietpi-software has not been migrated yet.

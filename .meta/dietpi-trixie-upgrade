@@ -123,8 +123,10 @@ fi
 if dpkg-query -l | grep -q '^ii[[:blank:]]*fail2ban[[:blank:]:]'
 then
 	# jail.conf [DEFAULT] banaction
+	# shellcheck disable=SC2016
 	conf_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.conf)
 	# Override [DEFAULT] banaction
+	# shellcheck disable=SC2016
 	over_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.{d/*.conf,local,d/*.local} 2> /dev/null)
 
 	# If jail.conf does not set [DEFAULT] banaction = iptables, it is intentional, hence delete defaults-debian.conf to prevent override with nftables on Trixie

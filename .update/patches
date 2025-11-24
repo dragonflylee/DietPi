@@ -2680,6 +2680,31 @@ Patch_9_20()
 			G_CONFIG_INJECT 'ExitType=' 'ExitType=cgroup' /etc/systemd/system/lazylibrarian.service '\[Service\]'
 		fi
 
+		# Fail2Ban
+		# - Debian Trixie's /etc/fail2ban/jail.d/defaults-debian.conf sets the [DEFAULT] banaction = nftables. This makes sense if the upstream default iptables was otherwise used, but it must not override any explicit choice.
+		# - If /etc/fail2ban/jail.conf sets anything different than [DEFAULT] banaction = iptables, it was obviously explicitly changed by admin or dietpi-software, and this choice must not be overridden.
+		if dpkg-query -l | grep -q '^ii[[:blank:]]*fail2ban[[:blank:]:]'
+		then
+			# jail.conf [DEFAULT] banaction
+			local conf_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.conf)
+			# Effective [DEFAULT] banaction
+			local used_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.{conf,d/*.conf,local,d/*.local} 2> /dev/null)
+
+			# If jail.conf does not set [DEFAULT] banaction = iptables, it is intentional, hence delete defaults-debian.conf to prevent override with nftables on Trixie
+			if [[ $conf_banaction != 'iptables'* ]]
+			then
+				G_DIETPI-NOTIFY 2 'Deleting conflicting Debian Fail2Ban jail config override'
+				G_EXEC rm -f /etc/fail2ban/jail.d/defaults-debian.conf
+				[[ $used_banaction == 'nftables'* ]] && ! dpkg-query -l | grep -q '^ii[[:blank:]]*nftables[[:blank:]:]' && G_EXEC systemctl restart fail2ban
+
+			# Else, if the effective [DEFAULT] banaction is nftables, assure that userland tools are installed
+			elif [[ $used_banaction == 'nftables'* ]] && ! dpkg-query -l | grep -q '^ii[[:blank:]]*nftables[[:blank:]:]'
+			then
+				G_DIETPI-NOTIFY 2 'Installing missing nftables userland tools for Fail2Ban'
+				G_AGI nftables
+			fi
+		fi
+
 		# Pi-hole v6 migration
 		# - /etc/pihole/pihole.toml indicates that Pi-hole has been upgraded to v6 already.
 		# - The /var/www/pihole symlink indicates that an instance installed via dietpi-software has not been migrated yet.

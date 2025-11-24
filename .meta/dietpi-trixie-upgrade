@@ -117,6 +117,33 @@ then
 	G_EXEC touch /etc/default/icecast2
 fi
 
+# Fail2Ban
+# - Debian Trixie's /etc/fail2ban/jail.d/defaults-debian.conf sets the [DEFAULT] banaction = nftables. This makes sense if the upstream default iptables is currently used, but it must not override any explicit choice.
+# - If /etc/fail2ban/jail.conf sets anything different than [DEFAULT] banaction = iptables, it was obviously explicitly changed by admin or dietpi-software, and this choice must not be overridden.
+if dpkg-query -l | grep -q '^ii[[:blank:]]*fail2ban[[:blank:]:]'
+then
+	# jail.conf [DEFAULT] banaction
+	conf_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.conf)
+	# Override [DEFAULT] banaction
+	over_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.{d/*.conf,local,d/*.local} 2> /dev/null)
+
+	# If jail.conf does not set [DEFAULT] banaction = iptables, it is intentional, hence delete defaults-debian.conf to prevent override with nftables on Trixie
+	if [[ $conf_banaction != 'iptables'* ]]
+	then
+		if [[ -f '/etc/fail2ban/jail.d/defaults-debian.conf' ]]
+		then
+			G_DIETPI-NOTIFY 2 'Deleting conflicting Debian Fail2Ban jail config override'
+			G_EXEC rm /etc/fail2ban/jail.d/defaults-debian.conf
+		fi
+
+	# Else, if there is no override [DEFAULT] banaction defined, assure that nftables userland tools are installed
+	elif [[ ! $over_banaction ]] && ! dpkg-query -l | grep -q '^ii[[:blank:]]*nftables[[:blank:]:]'
+	then
+		G_DIETPI-NOTIFY 2 'Installing nftables userland tools for Fail2Ban on Debian Trixie'
+		G_AGI nftables
+	fi
+fi
+
 fix=()
 if dpkg --compare-versions "$(dpkg-query -Wf '${Version}' libgtk-3-common 2> /dev/null)" gt '1:3'
 then

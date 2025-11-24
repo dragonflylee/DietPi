@@ -7452,7 +7452,7 @@ $GLOBAL_PW"
 		if To_Install 73 fail2ban # Fail2Ban
 		then
 			# Create jail.conf (backend = systemd) first, to prevent APT failure due to missing /var/log/auth.log: https://github.com/MichaIng/DietPi/issues/475#issuecomment-310873879
-			G_EXEC mkdir -p /etc/fail2ban/{fail2ban,filter}.d
+			G_EXEC mkdir -p /etc/fail2ban/{fail2ban,filter,jail}.d
 			[[ -f '/etc/fail2ban/jail.conf' ]] || cat << '_EOF_' > /etc/fail2ban/jail.conf
 [DEFAULT]
 enabled = true
@@ -7478,13 +7478,17 @@ _EOF_
 			G_EXEC eval 'echo -e '\''[Definition]\nlogtarget = SYSOUT'\'' > /etc/fail2ban/fail2ban.d/97_dietpi.conf'
 
 			# Fix Dropbear filter for STDOUT logging since Bookworm: https://github.com/fail2ban/fail2ban/pull/3597
-			[[ -f '/etc/fail2ban/filter.d/dropbear.local' ]] || G_EXEC curl -sSf 'https://raw.githubusercontent.com/fail2ban/fail2ban/master/config/filter.d/dropbear.conf' -o /etc/fail2ban/filter.d/dropbear.local
+			[[ -f '/etc/fail2ban/filter.d/dropbear.local' ]] || G_EXEC curl -sSfo /etc/fail2ban/filter.d/dropbear.local 'https://raw.githubusercontent.com/fail2ban/fail2ban/master/config/filter.d/dropbear.conf'
+
+			# Trixie: Prevent defaults-debian.conf to override our default banaction with nftables
+			G_EXEC eval '> /etc/fail2ban/jail.d/defaults-debian.conf'
 
 			# Trixie: python3-systemd has become hard package dependency
 			local deps=()
 			(( $G_DISTRO > 7 )) || deps=('python3-systemd')
 			G_AGI "${deps[@]}" fail2ban
 			Remove_SysV fail2ban 1
+			G_EXEC rm /etc/fail2ban/jail.d/defaults-debian.conf
 
 			# Failsafe
 			G_EXEC systemctl unmask fail2ban

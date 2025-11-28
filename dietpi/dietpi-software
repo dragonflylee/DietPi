@@ -9888,7 +9888,7 @@ _EOF_
 			if (( $G_HW_ARCH != 1 ))
 			then
 				case $G_DISTRO in
-					6) aDEPS+=('libicu67' 'libsqlite3-0');;
+					6) aDEPS+=('libicu67');;
 					7) aDEPS+=('libicu72');;
 					*) aDEPS+=('libicu76');;
 				esac
@@ -10236,7 +10236,7 @@ _EOF_
 		then
 			# .NET dependency: https://github.com/dotnet/docs/blob/main/docs/core/install/linux-debian.md#dependencies
 			case $G_DISTRO in
-				6) aDEPS=('libicu67' 'libsqlite3-0');;
+				6) aDEPS=('libicu67');;
 				7) aDEPS=('libicu72');;
 				*) aDEPS=('libicu76');;
 			esac

@@ -12339,7 +12339,7 @@ _EOF_
 			fi
 
 			# Service
-			cat << _EOF_ > /etc/systemd/system/birdnet.service
+			cat << _EOF_ > /etc/systemd/system/birdnet.service || exit 1
 [Unit]
 Description=BirdNet-Go
 Wants=network-online.target

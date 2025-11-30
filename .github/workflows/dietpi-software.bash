@@ -473,7 +473,8 @@ then
 	# Failing systemd services: https://gitlab.com/qemu-project/qemu/-/issues/1962, https://github.com/systemd/systemd/issues/31219
 	for i in rootfs/lib/systemd/system/*.service
 	do
-		[[ -f $i ]] && grep -Eq '^(Import|Load)Credential=' "$i" || continue
+		[[ -f $i ]] || continue
+		grep -Eq '^(Import|Load)Credential=' "$i" || continue
 		G_EXEC mkdir "${i/lib/etc}.d"
 		G_EXEC eval "echo -e '[Service]\nImportCredential=\nLoadCredential=' > \"${i/lib/etc}.d/dietpi-no-credentials.conf\""
 	done

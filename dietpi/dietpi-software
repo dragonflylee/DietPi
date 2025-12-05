@@ -304,6 +304,15 @@ Available commands:
 		aSOFTWARE_CONFLICTS[$software_id]='28'
 		# RPi only (archive.raspberrypi.com repo, libraspberrypi0 dependency, license)
 		(( $G_HW_MODEL > 9 )) && aSOFTWARE_AVAIL_G_HW_MODEL[$software_id,$G_HW_MODEL]=0
+		#------------------
+		software_id=12
+		aSOFTWARE_NAME[$software_id]='RustDesk Server'
+		aSOFTWARE_DESC[$software_id]='open-source remote desktop server, written in Rust'
+		aSOFTWARE_CATX[$software_id]=1
+		aSOFTWARE_DOCS[$software_id]='https://dietpi.com/docs/software/remote_desktop/#rustdesk-server'
+		# - RISC-V & ARMv6: https://github.com/rustdesk/rustdesk-server/releases
+		aSOFTWARE_AVAIL_G_HW_ARCH[$software_id,1]=0
+		aSOFTWARE_AVAIL_G_HW_ARCH[$software_id,11]=0
 
 		# Media Systems
 		#--------------------------------------------------------------------------------
@@ -12367,6 +12376,156 @@ ReadWritePaths=-$bnet_data -/tmp
 WantedBy=multi-user.target
 _EOF_
 		fi
+
+		if To_Install 12 # RustDesk Server
+		then
+			local rd_inst='/opt/rustdesk'
+			local rd_data='/mnt/dietpi_userdata/rustdesk'
+			case "$G_HW_ARCH" in
+				2) local arch='armv7';;
+				3) local arch='arm64v8';;
+				*) local arch='amd64';;
+			esac
+
+			# Download
+			local fallback_url="https://github.com/rustdesk/rustdesk-server/releases/download/1.1.14/rustdesk-server-linux-$arch.zip"
+			Download_Install "$(curl -sSfL 'https://api.github.com/repos/rustdesk/rustdesk-server/releases/latest' | mawk -F\" "/^ *\"browser_download_url\": \".*\/rustdesk-server-linux-$arch\.zip\"$/{print \$4}")" rustdesk
+
+			# Install: remove old install dir
+			[[ -d $rd_inst ]] && G_EXEC rm -R "$rd_inst"
+			G_EXEC mv "rustdesk/$arch" "$rd_inst"
+			G_EXEC rm -R rustdesk
+
+			# User
+			Create_User -d "$rd_data" rustdesk
+
+			# Data dir and config files:
+			# - https://github.com/rustdesk/rustdesk-server/blob/c6502179/README.md
+			# - https://github.com/rustdesk/rustdesk-server/discussions/371#discussioncomment-13971105
+			G_EXEC mkdir -p "$rd_data"
+			[[ -f $rd_data/signal.env ]] || cat << _EOF_ > "$rd_data/signal.env" || exit 1
+# RustDesk Signal Server settings: "$rd_data/signal.env
+
+# TCP/UDP listening port (default: 21116)
+#PORT=21116
+
+# Client authentication key, else the auto-generated $rd_data/id_ed25519.pub is used
+#KEY=
+
+# Log level error|warn|info|debug|trace (default: info)
+# NB: "info" logs client IPs, hence we suggest to switch to "warn" for production.
+#RUST_LOG=info
+
+# Database path relative to $rd_data (default: db_v2.sqlite3)
+#DB_URL=db_v2.sqlite3
+
+# Set to "Y" to disallows direct P2P connections (default: N)
+#ALWAYS_USE_RELAY=N
+_EOF_
+			[[ -f $rd_data/relay.env ]] || cat << _EOF_ > "$rd_data/relay.env" || exit 1
+# RustDesk Relay Server settings: $rd_data/relay.env
+
+# TCP listening port (default: 21117)
+#PORT=21117
+
+# Client authentication key, else the auto-generated $rd_data/id_ed25519.pub is used
+#KEY=
+
+# Log level error|warn|info|debug|trace (default: info)
+# NB: "info" logs client IPs, hence we suggest to switch to "warn" for production.
+#RUST_LOG=info
+
+# Total bandwidth limit in MiB/s (default: 1024)
+#TOTAL_BANDWIDTH=1024
+
+# Single connection bandwidth limit in MiB/s (default: 128)
+#SINGLE_BANDWIDTH=128
+
+# Bandwidth limit for clients listed in $rd_data/blacklist.txt in MiB/s (default: 32)
+#LIMIT_SPEED=32
+
+# Delay before limiting bandwidth in seconds (default: 1800)
+#DOWNGRADE_START_CHECK=1800
+
+# Threshold before limiting bandwidth in bit/ms (default: 0.66)
+#DOWNGRADE_THRESHOLD=0.66
+_EOF_
+			G_EXEC chmod 0700 "$rd_data"
+			G_EXEC chmod 0600 "$rd_data"/*
+			G_EXEC chown -R rustdesk:0 "$rd_data"
+
+			# Service hbbs: https://github.com/rustdesk/rustdesk-server/blob/master/systemd/rustdesk-hbbs.service
+			cat << _EOF_ > /etc/systemd/system/rustdesksignal.service
+[Unit]
+Description=RustDesk Signal Server
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+SyslogIdentifier=RustDesk Signal Server
+User=rustdesk
+WorkingDirectory=$rd_data
+EnvironmentFile=$rd_data/signal.env
+ExecStart=$rd_inst/hbbs
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+ProtectSystem=strict
+ProtectHome=1
+PrivateUsers=1
+PrivateTmp=1
+PrivateDevices=1
+ProtectKernelTunables=1
+ProtectControlGroups=1
+ProtectKernelModules=1
+ProtectKernelLogs=1
+ProtectClock=1
+ReadWritePaths=-$rd_data -/tmp
+
+[Install]
+WantedBy=multi-user.target
+_EOF_
+			# Service hbbr: https://github.com/rustdesk/rustdesk-server/blob/master/systemd/rustdesk-hbbr.service
+			cat << _EOF_ > /etc/systemd/system/rustdeskrelay.service
+[Unit]
+Description=RustDesk Relay Server
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+SyslogIdentifier=RustDesk Relay Server
+User=rustdesk
+WorkingDirectory=$rd_data
+EnvironmentFile=$rd_data/relay.env
+ExecStart=$rd_inst/hbbr
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
+
+# Hardening
+ProtectSystem=strict
+ProtectHome=1
+PrivateUsers=1
+PrivateTmp=1
+PrivateDevices=1
+ProtectKernelTunables=1
+ProtectControlGroups=1
+ProtectKernelModules=1
+ProtectKernelLogs=1
+ProtectClock=1
+ReadWritePaths=-$rd_data -/tmp
+
+[Install]
+WantedBy=multi-user.target
+_EOF_
+			aSTART_SERVICES+=('rustdesksignal' 'rustdeskrelay')
+			unset -v rd_inst rd_data
+		fi
 	}
 
 	# $1: 0=None -1=Dropbear -2=OpenSSH
@@ -14510,6 +14669,14 @@ _EOF_
 			G_EXEC rm -Rf /opt/lazylibrarian
 			G_EXEC rm -Rf /var/log/lazylibrarian
 			G_EXEC rm -Rf /mnt/dietpi_userdata/lazylibrarian
+		fi
+
+		if To_Uninstall 12 # RustDesk Server
+		then
+			Remove_Service rustdeskrelay
+			Remove_Service rustdesksignal rustdesk rustdesk
+			G_EXEC rm -Rf /opt/rustdesk
+			G_EXEC rm -Rf /mnt/dietpi_userdata/rustdesk
 		fi
 
 		G_DIETPI-NOTIFY 3 "$G_PROGRAM_NAME" 'Finalising uninstall'

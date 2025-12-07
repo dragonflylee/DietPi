@@ -304,6 +304,15 @@ Available commands:
 		aSOFTWARE_CONFLICTS[$software_id]='28'
 		# RPi only (archive.raspberrypi.com repo, libraspberrypi0 dependency, license)
 		(( $G_HW_MODEL > 9 )) && aSOFTWARE_AVAIL_G_HW_MODEL[$software_id,$G_HW_MODEL]=0
+		#------------------
+		software_id=12
+		aSOFTWARE_NAME[$software_id]='RustDesk Server'
+		aSOFTWARE_DESC[$software_id]='open-source remote desktop server, written in Rust'
+		aSOFTWARE_CATX[$software_id]=1
+		aSOFTWARE_DOCS[$software_id]='https://dietpi.com/docs/software/remote_desktop/#rustdesk-server'
+		# - RISC-V & ARMv6: https://github.com/rustdesk/rustdesk-server/releases
+		aSOFTWARE_AVAIL_G_HW_ARCH[$software_id,1]=0
+		aSOFTWARE_AVAIL_G_HW_ARCH[$software_id,11]=0
 
 		# Media Systems
 		#--------------------------------------------------------------------------------
@@ -2840,23 +2849,24 @@ _EOF_
 
 		if To_Install 191 snapserver # Snapcast Server
 		then
-			# RISC-V/Trixie: Install from Debian repo: https://github.com/badaix/snapcast/releases
-			if (( $G_DISTRO > 7 ))
+			# RISC-V: Install from Debian repo: https://github.com/snapcast/snapcast/releases
+			if (( $G_HW_ARCH == 11 ))
 			then
 				G_AGI snapserver
 
 				# Install and enable snapweb web UI, not included in Debian's snapserver package: https://github.com/MichaIng/DietPi/issues/7073
-				local fallback_url='https://github.com/badaix/snapweb/releases/download/v0.9.2/snapweb_0.9.2-1_all.deb'
-				Download_Install "$(curl -sSfL 'https://api.github.com/repos/badaix/snapweb/releases/latest' | mawk -F\" '/^ *"browser_download_url": ".*\/snapweb_[^"\/]*_all.deb"$/{print $4}')"
+				local fallback_url='https://github.com/snapcast/snapweb/releases/download/v0.9.2/snapweb_0.9.2-1_all.deb'
+				Download_Install "$(curl -sSfL 'https://api.github.com/repos/snapcast/snapweb/releases/latest' | mawk -F\" '/^ *"browser_download_url": ".*\/snapweb_[^"\/]*_all.deb"$/{print $4}')"
 				G_CONFIG_INJECT 'doc_root[[:blank:]=]' 'doc_root = /usr/share/snapweb' /etc/snapserver.conf '\[http\]'
 
-				# Fix /var/lib/snapserver permissions, just in case badaix's package was previously used, which uses the "snapserver" user, instead of "_snapserver"
+				# Fix /var/lib/snapserver permissions, just in case snapcast's package was previously used, which uses the "snapserver" user, instead of "_snapserver"
 				[[ -d '/var/lib/snapserver' ]] && G_EXEC chown -R '_snapserver:_snapserver' /var/lib/snapserver
 				getent passwd snapserver > /dev/null && G_EXEC userdel snapserver
 			else
 				local arch=$(dpkg --print-architecture)
-				local fallback_url="https://github.com/badaix/snapcast/releases/download/v0.34.0/snapserver_0.34.0-1_${arch}_$G_DISTRO_NAME.deb"
-				Download_Install "$(curl -sSfL 'https://api.github.com/repos/badaix/snapcast/releases/latest' | mawk -F\" "/^ *\"browser_download_url\": \".*\/snapserver_[^\"\/]*_${arch}_$G_DISTRO_NAME.deb\"$/{print \$4}")"
+				local dist=${G_DISTRO_NAME/forky/trixie}
+				local fallback_url="https://github.com/snapcast/snapcast/releases/download/v0.34.0/snapserver_0.34.0-1_${arch}_$dist.deb"
+				Download_Install "$(curl -sSfL 'https://api.github.com/repos/snapcast/snapcast/releases/latest' | mawk -F\" "/^ *\"browser_download_url\": \".*\/snapserver_[^\"\/]*_${arch}_$dist.deb\"$/{print \$4}")"
 
 				# Fix /var/lib/snapserver permissions, just in case Debian's package was previously used, which uses the "_snapserver" user, instead of "snapserver"
 				[[ -d '/var/lib/snapserver' ]] && G_EXEC chown -R 'snapserver:snapserver' /var/lib/snapserver
@@ -2870,14 +2880,15 @@ _EOF_
 
 		if To_Install 192 snapclient # Snapcast Client
 		then
-			# RISC-V/Trixie: Install from Debian repo: https://github.com/badaix/snapcast/releases
-			if (( $G_DISTRO > 7 ))
+			# RISC-V: Install from Debian repo: https://github.com/snapcast/snapcast/releases
+			if (( $G_HW_ARCH == 11 ))
 			then
 				G_AGI snapclient
 			else
 				local arch=$(dpkg --print-architecture)
-				local fallback_url="https://github.com/badaix/snapcast/releases/download/v0.34.0/snapclient_0.34.0-1_${arch}_$G_DISTRO_NAME.deb"
-				Download_Install "$(curl -sSfL 'https://api.github.com/repos/badaix/snapcast/releases/latest' | mawk -F\" "/^ *\"browser_download_url\": \".*\/snapclient_[^\"\/]*_${arch}_$G_DISTRO_NAME.deb\"$/{print \$4}")"
+				local dist=${G_DISTRO_NAME/forky/trixie}
+				local fallback_url="https://github.com/snapcast/snapcast/releases/download/v0.34.0/snapclient_0.34.0-1_${arch}_$dist.deb"
+				Download_Install "$(curl -sSfL 'https://api.github.com/repos/snapcast/snapcast/releases/latest' | mawk -F\" "/^ *\"browser_download_url\": \".*\/snapclient_[^\"\/]*_${arch}_$dist.deb\"$/{print \$4}")"
 			fi
 			G_EXEC systemctl stop snapclient
 
@@ -2901,7 +2912,7 @@ _EOF_
 			fi
 
 			# If no Snapcast server was defined explicitly, e.g. on unattended install without having the server installed first, server and client use Avahi to find each other.
-			# The client throws endless errors if Avahi is not running, and endless messages until the server announced itself: https://github.com/badaix/snapcast/issues/647
+			# The client throws endless errors if Avahi is not running, and endless messages until the server announced itself: https://github.com/snapcast/snapcast/issues/647
 			# Hence Avahi-Daemon is added as fixed dependency for the server, and added for the client hereby if no server was explicitly defined. But is this as fallback only for unattended installs.
 			if ! grep -q '^[[:blank:]]*SNAPCLIENT_OPTS=.*["[:blank:]]-h[[:blank:]]' /etc/default/snapclient
 			then
@@ -3662,6 +3673,9 @@ _EOF_
 			G_EXEC eval "debconf-set-selections <<< 'proftpd-basic shared/proftpd/inetd_or_standalone select standalone'"
 			G_AGI proftpd-basic
 			G_EXEC systemctl stop proftpd
+
+			# Disable conflicting activation socket: It would require "ServerType inetd" and replaces proftpd.service with ondemand proftpd@.service starts for each client connection.
+			G_EXEC systemctl --no-reload disable --now proftpd.socket
 
 			# Config
 			G_BACKUP_FP /etc/proftpd/proftpd.conf
@@ -7449,7 +7463,7 @@ $GLOBAL_PW"
 		if To_Install 73 fail2ban # Fail2Ban
 		then
 			# Create jail.conf (backend = systemd) first, to prevent APT failure due to missing /var/log/auth.log: https://github.com/MichaIng/DietPi/issues/475#issuecomment-310873879
-			G_EXEC mkdir -p /etc/fail2ban/{fail2ban,filter}.d
+			G_EXEC mkdir -p /etc/fail2ban/{fail2ban,filter,jail}.d
 			[[ -f '/etc/fail2ban/jail.conf' ]] || cat << '_EOF_' > /etc/fail2ban/jail.conf
 [DEFAULT]
 enabled = true
@@ -7475,13 +7489,17 @@ _EOF_
 			G_EXEC eval 'echo -e '\''[Definition]\nlogtarget = SYSOUT'\'' > /etc/fail2ban/fail2ban.d/97_dietpi.conf'
 
 			# Fix Dropbear filter for STDOUT logging since Bookworm: https://github.com/fail2ban/fail2ban/pull/3597
-			[[ -f '/etc/fail2ban/filter.d/dropbear.local' ]] || G_EXEC curl -sSf 'https://raw.githubusercontent.com/fail2ban/fail2ban/master/config/filter.d/dropbear.conf' -o /etc/fail2ban/filter.d/dropbear.local
+			[[ -f '/etc/fail2ban/filter.d/dropbear.local' ]] || G_EXEC curl -sSfo /etc/fail2ban/filter.d/dropbear.local 'https://raw.githubusercontent.com/fail2ban/fail2ban/master/config/filter.d/dropbear.conf'
+
+			# Trixie: Prevent defaults-debian.conf to override our default banaction with nftables
+			G_EXEC eval '> /etc/fail2ban/jail.d/defaults-debian.conf'
 
 			# Trixie: python3-systemd has become hard package dependency
 			local deps=()
 			(( $G_DISTRO > 7 )) || deps=('python3-systemd')
 			G_AGI "${deps[@]}" fail2ban
 			Remove_SysV fail2ban 1
+			G_EXEC rm /etc/fail2ban/jail.d/defaults-debian.conf
 
 			# Failsafe
 			G_EXEC systemctl unmask fail2ban
@@ -8991,13 +9009,12 @@ _EOF_
 
 			# Config
 			G_EXEC mkdir -p /mnt/dietpi_userdata/aria2
-			[[ -f '/mnt/dietpi_userdata/aria2/aria2.conf' ]] || cat << _EOF_ > /mnt/dietpi_userdata/aria2/aria2.conf
+			[[ -f '/mnt/dietpi_userdata/aria2/aria2.conf' ]] || cat << _EOF_ > /mnt/dietpi_userdata/aria2/aria2.conf || exit 1
 # DietPi default aria2c options served as aria2.conf file via --conf-path
 # https://aria2.github.io/manual/en/html/aria2c.html#options
 
 # Logging
-log=/var/log/aria2.log
-log-level=warn
+console-log-level=notice
 
 # Session
 always-resume=true
@@ -9044,20 +9061,14 @@ check-integrity=true
 seed-ratio=0.1
 seed-time=0
 _EOF_
-
-			# Pre-create log file
-			local fp_log=$(sed -n '/^[[:blank:]]*log=/{s/^[^=]*=//p;q}' /mnt/dietpi_userdata/aria2/aria2.conf)
-			[[ ${fp_log//\"} && ! -f $fp_log ]] && >> "$fp_log"
-
 			# Pre-create input file
 			local fp_input=$(sed -n '/^[[:blank:]]*input-file=/{s/^[^=]*=//p;q}' /mnt/dietpi_userdata/aria2/aria2.conf)
-			[[ ${fp_input//\"} && ! -f $fp_input ]] && >> "$fp_input"
+			[[ ${fp_input//\"} && ! -f $fp_input ]] && > "$fp_input"
 
 			# Permissions
-			G_EXEC chown -R aria2:root /mnt/dietpi_userdata/aria2 "$fp_input"
-			G_EXEC chown aria2:dietpi "$fp_log"
-			G_EXEC chmod 600 /mnt/dietpi_userdata/aria2/aria2.conf
-			unset -v fp_log fp_input
+			G_EXEC chown -R aria2:0 /mnt/dietpi_userdata/aria2 "$fp_input"
+			G_EXEC chmod 0600 /mnt/dietpi_userdata/aria2/aria2.conf
+			unset -v fp_input
 
 			# Service
 			cat << _EOF_ > /etc/systemd/system/aria2.service
@@ -9819,6 +9830,9 @@ _EOF_
 			fi
 			Download_Install "$url"
 
+			# Bullseye: Use system SQLite library: https://wiki.servarr.com/radarr/faq#radarr-wont-start-on-debian-11-or-older-systems-due-to-sqlite-version
+			(( $G_DISTRO < 7 && $G_HW_ARCH != 1 )) && G_EXEC ln -sf /usr/lib/*/libsqlite3.so.0 Radarr/libe_sqlite3.so
+
 			# Install: Remove previous instance on reinstall
 			[[ -d '/opt/radarr' ]] && G_EXEC rm -R /opt/radarr
 			G_EXEC mv Radarr /opt/radarr
@@ -9885,7 +9899,7 @@ _EOF_
 			if (( $G_HW_ARCH != 1 ))
 			then
 				case $G_DISTRO in
-					6) aDEPS+=('libicu67' 'libsqlite3-0');;
+					6) aDEPS+=('libicu67');;
 					7) aDEPS+=('libicu72');;
 					*) aDEPS+=('libicu76');;
 				esac
@@ -9911,7 +9925,7 @@ _EOF_
 			Download_Install "$url"
 
 			# Bullseye: Use system SQLite library: https://wiki.servarr.com/lidarr/faq#lidarr-wont-start-on-debian-11-or-older-systems-due-to-sqlite-version
-			(( $G_DISTRO == 6 && $G_HW_ARCH != 1 )) && G_EXEC ln -sf /usr/lib/*/libsqlite3.so.0 Lidarr/libe_sqlite3.so
+			(( $G_DISTRO < 7 && $G_HW_ARCH != 1 )) && G_EXEC ln -sf /usr/lib/*/libsqlite3.so.0 Lidarr/libe_sqlite3.so
 
 			# Install: Remove previous instance on reinstall
 			[[ -d '/opt/lidarr' ]] && G_EXEC rm -R /opt/lidarr
@@ -10233,7 +10247,7 @@ _EOF_
 		then
 			# .NET dependency: https://github.com/dotnet/docs/blob/main/docs/core/install/linux-debian.md#dependencies
 			case $G_DISTRO in
-				6) aDEPS=('libicu67' 'libsqlite3-0');;
+				6) aDEPS=('libicu67');;
 				7) aDEPS=('libicu72');;
 				*) aDEPS=('libicu76');;
 			esac
@@ -10968,8 +10982,8 @@ _EOF_
 		if To_Install 160 # Allo GUI
 		then
 			# Download
-			Download_Install 'https://github.com/MichaIng/DietPi-AlloGUI/archive/v14.tar.gz'
-			G_EXEC mv DietPi-AlloGUI-14 allo
+			Download_Install 'https://github.com/MichaIng/DietPi-AlloGUI/archive/v15.tar.gz'
+			G_EXEC mv DietPi-AlloGUI-15 allo
 
 			# Permissions
 			G_EXEC chmod -R 'o=,g-w' allo
@@ -11002,12 +11016,11 @@ _EOF_
 			G_EXEC eval 'echo '\''www-data ALL=NOPASSWD: ALL'\'' > /etc/sudoers.d/allo'
 
 			# Link to webroot
-			[[ -e '/var/www/allo' ]] && G_EXEC rm -R /var/www/allo # Failsafe
-			G_EXEC ln -sf /opt/allo/public /var/www/allo
+			G_EXEC ln -snf /opt/allo/public /var/www/allo
 
 			# Redirect to web interface by default
 			G_EXEC rm -f /var/www/index\.*
-			cat << '_EOF_' > /var/www/index.php
+			cat << '_EOF_' > /var/www/index.php || exit 1
 <?php
 header('Location: /allo/index.php');
 exit;
@@ -11932,16 +11945,18 @@ _EOF_
 
 		if To_Install 185 # Portainer
 		then
-			# Check for existing Portainer container
-			local container=$(docker container ls -a | mawk '/portainer\/portainer(-ce)?( |$)/{print $1;exit}')
+			# Remove existing container and image, including CE, BE, and old v1, and store image repo in variable to preserve BE instances
+			local container=$(docker container ls -aqf 'ancestor=portainer/portainer' -f 'ancestor=portainer/portainer-ce' -f 'ancestor=portainer/portainer-ee') image repo
 			[[ $container ]] && G_EXEC docker container rm -f "$container"
-			local image=$(docker image ls -a | mawk '/portainer\/portainer(-ce)?( |$)/{print $3;exit}')
+			read -r image repo < <(docker image ls -af 'reference=portainer/portainer' -f 'reference=portainer/portainer-ce' -f 'reference=portainer/portainer-ee' --format '{{.ID}} {{.Repository}}')
 			[[ $image ]] && G_EXEC docker image rm "$image"
-			docker volume ls -q | grep -xq 'portainer_data' || G_EXEC docker volume create portainer_data
 
-			# Deploy the Portainer container
-			G_DIETPI-NOTIFY 2 'Portainer will be deployed now. This could take a while...'
-			G_EXEC_OUTPUT=1 G_EXEC docker run -d -p '9002:9000' -p '9442:9443' --name=portainer --restart=always -v '/run/docker.sock:/var/run/docker.sock' -v '/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro' -v 'portainer_data:/data' 'portainer/portainer-ce'
+			# Create volume if it does not exist yet
+			[[ $(docker volume ls -qf 'name=^portainer_data$') ]] || G_EXEC docker volume create portainer_data
+
+			# Deploy new Portainer container, migrate v1 to CE and preserve BE
+			[[ $repo == 'portainer/portainer-ee' ]] || repo='portainer/portainer-ce'
+			G_EXEC_OUTPUT=1 G_EXEC docker run -d -p '9002:9000' -p '9442:9443' --name=portainer --restart=always -v '/run/docker.sock:/var/run/docker.sock' -v '/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro' -v 'portainer_data:/data' "$repo"
 		fi
 
 		if To_Install 141 adsb-setup adsb-docker # ADS-B Feeder
@@ -12256,6 +12271,7 @@ User=lazylibrarian
 UMask=002
 LogsDirectory=lazylibrarian
 ExecStart=/opt/lazylibrarian/venv/bin/python /opt/lazylibrarian/LazyLibrarian.py --datadir=/mnt/dietpi_userdata/lazylibrarian --nolaunch
+ExitType=cgroup
 
 # Hardening
 ProtectSystem=strict
@@ -12302,7 +12318,7 @@ _EOF_
 			G_EXEC mv birdnet "$bnet_inst"
 
 			# User
-			Create_User -d "$bnet_data" "$bnet_user"
+			Create_User -G audio -d "$bnet_data" "$bnet_user"
 
 			# Data dir
 			G_EXEC mkdir -p "$bnet_data"
@@ -12333,7 +12349,7 @@ _EOF_
 			fi
 
 			# Service
-			cat << _EOF_ > /etc/systemd/system/birdnet.service
+			cat << _EOF_ > /etc/systemd/system/birdnet.service || exit 1
 [Unit]
 Description=BirdNet-Go
 Wants=network-online.target
@@ -12352,7 +12368,6 @@ RestartSec=5
 ProtectSystem=strict
 ProtectHome=1
 PrivateTmp=1
-PrivateDevices=1
 ProtectKernelTunables=1
 ProtectControlGroups=1
 ReadWritePaths=-$bnet_data -/tmp
@@ -12360,6 +12375,156 @@ ReadWritePaths=-$bnet_data -/tmp
 [Install]
 WantedBy=multi-user.target
 _EOF_
+		fi
+
+		if To_Install 12 # RustDesk Server
+		then
+			local rd_inst='/opt/rustdesk'
+			local rd_data='/mnt/dietpi_userdata/rustdesk'
+			case "$G_HW_ARCH" in
+				2) local arch='armv7';;
+				3) local arch='arm64v8';;
+				*) local arch='amd64';;
+			esac
+
+			# Download
+			local fallback_url="https://github.com/rustdesk/rustdesk-server/releases/download/1.1.14/rustdesk-server-linux-$arch.zip"
+			Download_Install "$(curl -sSfL 'https://api.github.com/repos/rustdesk/rustdesk-server/releases/latest' | mawk -F\" "/^ *\"browser_download_url\": \".*\/rustdesk-server-linux-$arch\.zip\"$/{print \$4}")" rustdesk
+
+			# Install: remove old install dir
+			[[ -d $rd_inst ]] && G_EXEC rm -R "$rd_inst"
+			G_EXEC mv "rustdesk/$arch" "$rd_inst"
+			G_EXEC rm -R rustdesk
+
+			# User
+			Create_User -d "$rd_data" rustdesk
+
+			# Data dir and config files:
+			# - https://github.com/rustdesk/rustdesk-server/blob/c6502179/README.md
+			# - https://github.com/rustdesk/rustdesk-server/discussions/371#discussioncomment-13971105
+			G_EXEC mkdir -p "$rd_data"
+			[[ -f $rd_data/signal.env ]] || cat << _EOF_ > "$rd_data/signal.env" || exit 1
+# RustDesk Signal Server settings: "$rd_data/signal.env
+
+# TCP/UDP listening port (default: 21116)
+#PORT=21116
+
+# Client authentication key, else the auto-generated $rd_data/id_ed25519.pub is used
+#KEY=
+
+# Log level error|warn|info|debug|trace (default: info)
+# NB: "info" logs client IPs, hence we suggest to switch to "warn" for production.
+#RUST_LOG=info
+
+# Database path relative to $rd_data (default: db_v2.sqlite3)
+#DB_URL=db_v2.sqlite3
+
+# Set to "Y" to disallows direct P2P connections (default: N)
+#ALWAYS_USE_RELAY=N
+_EOF_
+			[[ -f $rd_data/relay.env ]] || cat << _EOF_ > "$rd_data/relay.env" || exit 1
+# RustDesk Relay Server settings: $rd_data/relay.env
+
+# TCP listening port (default: 21117)
+#PORT=21117
+
+# Client authentication key, else the auto-generated $rd_data/id_ed25519.pub is used
+#KEY=
+
+# Log level error|warn|info|debug|trace (default: info)
+# NB: "info" logs client IPs, hence we suggest to switch to "warn" for production.
+#RUST_LOG=info
+
+# Total bandwidth limit in MiB/s (default: 1024)
+#TOTAL_BANDWIDTH=1024
+
+# Single connection bandwidth limit in MiB/s (default: 128)
+#SINGLE_BANDWIDTH=128
+
+# Bandwidth limit for clients listed in $rd_data/blacklist.txt in MiB/s (default: 32)
+#LIMIT_SPEED=32
+
+# Delay before limiting bandwidth in seconds (default: 1800)
+#DOWNGRADE_START_CHECK=1800
+
+# Threshold before limiting bandwidth in bit/ms (default: 0.66)
+#DOWNGRADE_THRESHOLD=0.66
+_EOF_
+			G_EXEC chmod 0700 "$rd_data"
+			G_EXEC chmod 0600 "$rd_data"/*
+			G_EXEC chown -R rustdesk:0 "$rd_data"
+
+			# Service hbbs: https://github.com/rustdesk/rustdesk-server/blob/master/systemd/rustdesk-hbbs.service
+			cat << _EOF_ > /etc/systemd/system/rustdesksignal.service
+[Unit]
+Description=RustDesk Signal Server
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+SyslogIdentifier=RustDesk Signal Server
+User=rustdesk
+WorkingDirectory=$rd_data
+EnvironmentFile=$rd_data/signal.env
+ExecStart=$rd_inst/hbbs
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+ProtectSystem=strict
+ProtectHome=1
+PrivateUsers=1
+PrivateTmp=1
+PrivateDevices=1
+ProtectKernelTunables=1
+ProtectControlGroups=1
+ProtectKernelModules=1
+ProtectKernelLogs=1
+ProtectClock=1
+ReadWritePaths=-$rd_data -/tmp
+
+[Install]
+WantedBy=multi-user.target
+_EOF_
+			# Service hbbr: https://github.com/rustdesk/rustdesk-server/blob/master/systemd/rustdesk-hbbr.service
+			cat << _EOF_ > /etc/systemd/system/rustdeskrelay.service
+[Unit]
+Description=RustDesk Relay Server
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+SyslogIdentifier=RustDesk Relay Server
+User=rustdesk
+WorkingDirectory=$rd_data
+EnvironmentFile=$rd_data/relay.env
+ExecStart=$rd_inst/hbbr
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
+
+# Hardening
+ProtectSystem=strict
+ProtectHome=1
+PrivateUsers=1
+PrivateTmp=1
+PrivateDevices=1
+ProtectKernelTunables=1
+ProtectControlGroups=1
+ProtectKernelModules=1
+ProtectKernelLogs=1
+ProtectClock=1
+ReadWritePaths=-$rd_data -/tmp
+
+[Install]
+WantedBy=multi-user.target
+_EOF_
+			aSTART_SERVICES+=('rustdesksignal' 'rustdeskrelay')
+			unset -v rd_inst rd_data
 		fi
 	}
 
@@ -12902,11 +13067,17 @@ _EOF_
 		if To_Uninstall 132 # Aria2
 		then
 			[[ -d '/var/www/aria2' ]] && G_EXEC rm -R /var/www/aria2
-			Remove_Service aria2 1 1
+			Remove_Service aria2 1
 			G_AGP aria2
-			[[ -d '/mnt/dietpi_userdata/aria2' ]] && G_EXEC rm -R /mnt/dietpi_userdata/aria2
+			# Remove input file
+			if [[ -f '/mnt/dietpi_userdata/aria2/aria2.conf' ]]
+			then
+				local fp_input=$(sed -n '/^[[:blank:]]*input-file=/{s/^[^=]*=//p;q}' /mnt/dietpi_userdata/aria2/aria2.conf)
+				[[ ${fp_input//\"} ]] && G_EXEC rm -f "$fp_input"
+				unset -v fp_input
+			fi
+			G_EXEC rm -Rf /mnt/dietpi_userdata/aria2
 			[[ -f '/mnt/dietpi_userdata/downloads/aria2.session' ]] && G_EXEC rm /mnt/dietpi_userdata/downloads/aria2.session
-			[[ -f '/usr/local/bin/aria2c' ]] && G_EXEC rm /usr/local/bin/aria2c # Previous
 		fi
 
 		if To_Uninstall 133 # YaCy
@@ -14015,12 +14186,11 @@ _EOF_
 			# Check if Docker is still installed
 			if [[ -d '/mnt/dietpi_userdata/docker-data' ]]
 			then
-				# Remove Portainer container, image & volume
-				local container=$(docker container ls -a | mawk '/portainer\/portainer(-ce)?( |$)/{print $1;exit}')
+				local container=$(docker container ls -aqf 'ancestor=portainer/portainer' -f 'ancestor=portainer/portainer-ce' -f 'ancestor=portainer/portainer-ee')
 				[[ $container ]] && G_EXEC docker container rm -f "$container"
-				local image=$(docker image ls -a | mawk '/portainer\/portainer(-ce)?( |$)/{print $3;exit}')
+				local image=$(docker image ls -aqf 'reference=portainer/portainer' -f 'reference=portainer/portainer-ce' -f 'reference=portainer/portainer-ee')
 				[[ $image ]] && G_EXEC docker image rm "$image"
-				docker volume ls -q | grep -xq 'portainer_data' && G_EXEC docker volume rm 'portainer_data'
+				[[ $(docker volume ls -qf 'name=^portainer_data$') ]] && G_EXEC docker volume rm 'portainer_data'
 			fi
 		fi
 
@@ -14036,7 +14206,7 @@ _EOF_
 			Remove_Service docker
 
 			# Packages, repo and key
-			G_AGP docker-ce docker-ce-cli docker.io
+			G_AGP docker-ce docker-ce-cli docker.io docker-cli
 			[[ -f '/etc/apt/sources.list.d/docker.list' ]] && G_EXEC rm /etc/apt/sources.list.d/docker.list
 			[[ -f '/etc/apt/trusted.gpg.d/dietpi-docker.gpg' ]] && G_EXEC rm /etc/apt/trusted.gpg.d/dietpi-docker.gpg
 
@@ -14413,7 +14583,7 @@ _EOF_
 		if To_Uninstall 191 # Snapcast Server
 		then
 			G_AGP snapserver
-			# Remove users from Debian's and badaix's packages, to cleanly cover upgrades from one to the other.
+			# Remove users from Debian's and snapcast's packages, to cleanly cover upgrades from one to the other.
 			getent passwd snapserver > /dev/null && G_EXEC userdel snapserver
 			getent passwd _snapserver > /dev/null && G_EXEC userdel _snapserver
 		fi
@@ -14499,6 +14669,14 @@ _EOF_
 			G_EXEC rm -Rf /opt/lazylibrarian
 			G_EXEC rm -Rf /var/log/lazylibrarian
 			G_EXEC rm -Rf /mnt/dietpi_userdata/lazylibrarian
+		fi
+
+		if To_Uninstall 12 # RustDesk Server
+		then
+			Remove_Service rustdeskrelay
+			Remove_Service rustdesksignal rustdesk rustdesk
+			G_EXEC rm -Rf /opt/rustdesk
+			G_EXEC rm -Rf /mnt/dietpi_userdata/rustdesk
 		fi
 
 		G_DIETPI-NOTIFY 3 "$G_PROGRAM_NAME" 'Finalising uninstall'

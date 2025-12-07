@@ -2035,12 +2035,10 @@ Press any key to continue...'
 		mapfile -t packages < <(dpkg-query -l | mawk -v "branch=$branch" '$1=="ii" && match($2,"^(linux-(image|dtb|headers|libc-dev)-"branch"-|linux-u-boot-.*-"branch"$|armbian-firmware$|firmware-(quartz64[ab]|soquartz)$)") {print "https://dietpi.com/downloads/binaries/testing/"$2".deb"}')
 		[[ ${packages[0]} ]] || { G_DIETPI-NOTIFY 1 'No matching packages are installed on your system, aborting ...'; return 1; }
 		G_EXEC cd /tmp
-		G_EXEC rm -f "${packages[@]##*/}"
-		G_DIETPI-NOTIFY 2 "Downloading packages: ${packages[*]##*/}"
+		G_EXEC_DESC="Downloading packages: ${packages[*]##*/}" G_EXEC rm -f "${packages[@]##*/}"
 		wget "${packages[@]}"
 		for i in "${!packages[@]}"; do [[ -f ${packages[i]##*/} ]] || unset -v 'packages[i]'; done
 		(( ${#packages[@]} )) || { G_DIETPI-NOTIFY 1 'None of the packages could be downloaded, aborting ...'; return 1; }
-		G_DIETPI-NOTIFY 2 "Installing packages: ${packages[*]##*/}"
 		G_EXEC_OUTPUT=1 G_EXEC dpkg -i "${packages[@]##*/}"
 	}
 

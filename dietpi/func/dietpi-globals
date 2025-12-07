@@ -2019,12 +2019,29 @@ Press any key to continue...'
 	}
 
 	# Apply and update to different branch
-	G_DEV_BRANCH(){
-
+	G_DEV_BRANCH()
+	{
 		G_CHECK_ROOT_USER "$@" || return 0
 		G_CONFIG_INJECT 'DEV_GITBRANCH=' "DEV_GITBRANCH=$1" /boot/dietpi.txt
 		/boot/dietpi/dietpi-update -1
+	}
 
+	# Install test kernel/bootloader/firmware
+	# - $1: branch (optional)
+	G_DEV_TEST_FIRMWARE()
+	{
+		local branch=$1 packages=()
+		[[ $branch ]] || branch=$(uname -r) branch=${branch%-*} branch=${branch##*-}
+		mapfile -t packages < <(dpkg-query -l | mawk -v "branch=$branch" '$1=="ii" && match($2,"^(linux-(image|dtb|headers|libc-dev)-"branch"-|linux-u-boot-.*-"branch"$|armbian-firmware$|firmware-(quartz64[ab]|soquartz)$)") {print "https://dietpi.com/downloads/binaries/testing/"$2".deb"}')
+		[[ ${packages[0]} ]] || { G_DIETPI-NOTIFY 1 'No matching packages are installed on your system, aborting ...'; return 1; }
+		G_EXEC cd /tmp
+		G_EXEC rm -f "${packages[@]##*/}"
+		G_DIETPI-NOTIFY 2 "Downloading packages: ${packages[*]##*/}"
+		wget "${packages[@]}"
+		for i in "${!packages[@]}"; do [[ -f ${packages[i]##*/} ]] || unset -v packages[i]; done
+		(( ${#packages[@]} )) || { G_DIETPI-NOTIFY 1 'None of the packages could be downloaded, aborting ...'; return 1; }
+		G_DIETPI-NOTIFY 2 'Installing packages: ${packages[*]##*/}'
+		G_EXEC_OUTPUT=1 G_EXEC dpkg -i "${packages[@]##*/}"
 	}
 
 	# Inject setting into config file: First tries to replace old setting, else commented setting and otherwise adds to end of file.

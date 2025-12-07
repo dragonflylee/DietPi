@@ -257,7 +257,7 @@ _EOF_
 			# Stop, disable and remove DietPi services
 			for i in /etc/systemd/system/dietpi-*
 			do
-				[[ -f $i ]] && G_EXEC systemctl disable --now "${i##*/}"
+				[[ -f $i ]] && G_EXEC systemctl --no-reload disable --now "${i##*/}"
 				G_EXEC rm -Rf "$i"
 			done
 
@@ -945,8 +945,8 @@ setenv rootuuid "true"' /boot/boot.cmd
 		G_DIETPI-NOTIFY 2 'Disabling apt-daily services to prevent random APT cache lock'
 		for i in apt-daily{,-upgrade}.{service,timer}
 		do
-			G_EXEC systemctl disable --now "$i"
-			G_EXEC systemctl mask "$i"
+			G_EXEC systemctl --no-reload disable --now "$i"
+			G_EXEC systemctl --no-reload mask "$i"
 		done
 
 		G_DIETPI-NOTIFY 2 'Purging configs/data of removed packages'
@@ -1827,11 +1827,11 @@ _EOF_
 			for j in /etc/init.d/$i /{etc,lib,usr/lib,usr/local/lib}/systemd/system/{$i.service{,.d},*.wants/$i.service}
 			do
 				[[ -e $j || -L $j ]] || continue
-				[[ -f $j ]] && G_EXEC systemctl disable --now "${j##*/}"
+				[[ -f $j ]] && G_EXEC systemctl --no-reload disable --now "${j##*/}"
 				# Remove if not attached to any DEB package, else mask
 				if dpkg -S "$j" &> /dev/null
 				then
-					G_EXEC systemctl mask "${j##*/}"
+					G_EXEC systemctl --no-reload mask "${j##*/}"
 				else
 					[[ -e $j || -L $j ]] && G_EXEC rm -R "$j"
 				fi
@@ -1988,13 +1988,13 @@ _EOF_'
 		G_DIETPI-NOTIFY 2 'Configuring DNS nameserver:'
 		# Failsafe: Assure that /etc/resolv.conf is not a symlink and disable systemd-resolved + systemd-networkd
 		# - Since Bookworm, systemd-resolved is an own package.
-		G_EXEC systemctl disable --now systemd-networkd
-		(( $G_DISTRO > 6 )) || G_EXEC systemctl disable --now systemd-resolved
+		G_EXEC systemctl --no-reload disable --now systemd-networkd
+		(( $G_DISTRO > 6 )) || G_EXEC systemctl --no-reload disable --now systemd-resolved
 		G_EXEC rm -f /etc/resolv.conf
 		G_EXEC eval 'echo '\''nameserver 9.9.9.9'\'' > /etc/resolv.conf' # Apply generic functional DNS nameserver
 
 		# ifupdown starts the daemon outside of systemd, the enabled systemd unit just throws an error on boot due to missing dbus and with dbus might interfere with ifupdown
-		systemctl -q is-enabled wpa_supplicant 2> /dev/null && G_EXEC systemctl disable wpa_supplicant
+		systemctl -q is-enabled wpa_supplicant 2> /dev/null && G_EXEC systemctl --no-reload disable wpa_supplicant
 
 		# Removing all network configs: https://github.com/MichaIng/DietPi/issues/6067
 		G_EXEC rm -Rf /etc/network/interfaces{,.d/{,.??,.[^.]}*}
@@ -2037,7 +2037,7 @@ _EOF_'
 		if command -v e2scrub > /dev/null
 		then
 			G_DIETPI-NOTIFY 2 'Disabling e2scrub services which are for LVM and require lvm2/lvcreate being installed'
-			G_EXEC systemctl disable --now e2scrub_{all.timer,reap}
+			G_EXEC systemctl --no-reload disable --now e2scrub_{all.timer,reap}
 		fi
 
 		G_DIETPI-NOTIFY 2 'Enabling weekly TRIM'
@@ -2115,9 +2115,9 @@ _EOF_'
 			/boot/dietpi/func/dietpi-set_hardware serialconsole enable serial0
 			# Disable and mask the others explicitly to be independent of currently available serial devices
 			/boot/dietpi/func/dietpi-set_hardware serialconsole disable ttyAMA0
-			G_EXEC systemctl mask serial-getty@ttyAMA0
+			G_EXEC systemctl --no-reload mask serial-getty@ttyAMA0
 			/boot/dietpi/func/dietpi-set_hardware serialconsole disable ttyS0
-			G_EXEC systemctl mask serial-getty@ttyS0
+			G_EXEC systemctl --no-reload mask serial-getty@ttyS0
 
 		# Odroid XU4
 		elif (( $G_HW_MODEL == 11 ))
@@ -2170,23 +2170,23 @@ _EOF_'
 		(( $G_HW_MODEL == 20 || $G_HW_MODEL == 75 || $G_HW_MODEL == 70 )) || G_CONFIG_INJECT 'CONFIG_SERIAL_CONSOLE_ENABLE=' 'CONFIG_SERIAL_CONSOLE_ENABLE=1' /boot/dietpi.txt
 
 		G_DIETPI-NOTIFY 2 'Disabling static login prompts on consoles tty2 to tty6:'
-		G_EXEC systemctl mask --now getty-static
+		G_EXEC systemctl --no-reload mask --now getty-static
 
 		if (( $G_HW_MODEL == 20 ))
 		then
 			G_DIETPI-NOTIFY 2 'Assuring that logind is enabled on VM image for ACPI functionality'
-			G_EXEC systemctl unmask systemd-logind
+			G_EXEC systemctl --no-reload unmask systemd-logind
 		else
 			# - logind features are usually not needed and (aside of automatic getty spawn and ACPI) require the libpam-systemd package.
 			# - It will be unmasked automatically if libpam-systemd got installed during dietpi-software install, e.g. with desktops.
 			G_DIETPI-NOTIFY 2 'Disabling logind by default, usually not needed on physical server systems'
-			G_EXEC systemctl mask --now systemd-logind
+			G_EXEC systemctl --no-reload mask --now systemd-logind
 		fi
 
 		# Assure that console on TTY1 is enabled for automated first run setup, as well on headless SBCs. Disable it for container images, which usually have no virtual consoles but boot on /dev/console, triggering console-getty.service where autologin is enabled as well.
 		if (( $G_HW_MODEL == 75 ))
 		then
-			G_EXEC systemctl disable getty@tty1
+			G_EXEC systemctl --no-reload disable getty@tty1
 		else
 			G_EXEC systemctl enable getty@tty1
 		fi
@@ -2325,7 +2325,7 @@ _EOF_
 			G_CONFIG_INJECT 'CONFIG_NTP_MODE=' 'CONFIG_NTP_MODE=0' /boot/dietpi.txt
 		else
 			(( $G_DISTRO < 7 )) && G_EXEC_DESC='Enable Dropbear autostart' G_EXEC sed --follow-symlinks -i '/NO_START=1/c\NO_START=0' /etc/default/dropbear
-			G_EXEC systemctl unmask dropbear
+			G_EXEC systemctl --no-reload unmask dropbear
 			G_EXEC systemctl enable dropbear
 		fi
 
@@ -2333,7 +2333,7 @@ _EOF_
 		/boot/dietpi/dietpi-services unmask
 		/boot/dietpi/dietpi-services stop
 		/boot/dietpi/dietpi-services enable
-		G_EXEC systemctl disable cron
+		G_EXEC systemctl --no-reload disable cron
 
 		G_DIETPI-NOTIFY 2 'Removing swapfile from image'
 		/boot/dietpi/func/dietpi-set_swapfile 0 /var/swap
@@ -2431,6 +2431,7 @@ _EOF_
 
 		G_EXEC_DESC='Enabling automated partition and file system resize for first boot' G_EXEC systemctl enable dietpi-fs_partition_resize
 		G_EXEC_DESC='Enabling first boot installation process' G_EXEC systemctl enable dietpi-firstboot
+		G_EXEC systemctl --no-reload mask systemd-firstboot
 
 		G_DIETPI-NOTIFY 2 'Clearing lost+found'
 		rm -Rfv /lost+found/{,.??,.[^.]}*

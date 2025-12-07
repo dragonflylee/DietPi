@@ -2665,6 +2665,9 @@ Patch_9_20()
 		[[ -d '/boot/dtb' ]] || G_EXEC ln -snf /boot/dtb-6.12.* /boot/dtb
 	fi
 
+	G_DIETPI-NOTIFY 2 'Masking unnecessary systemd-firstboot service'
+	G_EXEC systemctl --no-reload mask systemd-firstboot
+
 	# Software updates, migrations and patches
 	if [[ -f '/boot/dietpi/.installed' ]]
 	then

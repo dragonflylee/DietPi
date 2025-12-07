@@ -14,7 +14,7 @@ Exit_Error()
 
 # RustDesk Server
 software_id=12
-aCHECK[$software_id]='curl -sSfL '\''https://api.github.com/repos/rustdesk/rustdesk-server/releases/latest'\'' | mawk -F\" "/^ *\"browser_download_url\": \".*\/rustdesk-server-linux-$arch\.zip\"$/{print \$4}"'
+aCHECK[$software_id]='curl -sSf '\''https://api.github.com/repos/rustdesk/rustdesk-server/releases/latest'\'' | mawk -F\" "/^ *\"browser_download_url\": \".*\/rustdesk-server-linux-$arch\.zip\"$/{print \$4}"'
 aARCH[$software_id]='armv7 arm64v8 amd64'
 aARCH_CHECK[$software_id]='riscv64'
 aREGEX[$software_id]='https://github.com/rustdesk/rustdesk-server/releases/download/.*/rustdesk-server-linux-\$arch\.zip'

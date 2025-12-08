@@ -24,7 +24,7 @@ Bug fixes:
 - DietPi-Software | Radarr: Resolved an issue on Bullseye systems where the service fails due to an incompatible embedded SQLite library, same as with Lidarr and Prowlarr earlier: https://wiki.servarr.com/radarr/faq#radarr-wont-start-on-debian-11-or-older-systems-due-to-sqlite-version. Many thanks to @tundrablasen for reporting this issue: https://github.com/MichaIng/DietPi/issues/7837
 - DietPi-Software | Portainer: Resolved an issue where with Docker 29.1.0 the CLI changed a way that our container image detection failed, so that "dietpi-software reinstall 185" did not update Portainer anymore. Coincidentally, the Portainer BE support we previously added solves this issue as well. Many thanks to @Pi-Rate for reporting this issue: https://dietpi.com/forum/t/24688/12
 
-As always, many smaller code performance and stability improvements, visual and spelling fixes have been done, too much to list all of them here. Check out all code changes of this release on GitHub: https://github.com/MichaIng/DietPi/pull/XXXX
+As always, many smaller code performance and stability improvements, visual and spelling fixes have been done, too much to list all of them here. Check out all code changes of this release on GitHub: https://github.com/MichaIng/DietPi/pull/7855
 
 -----------------------------------------------------------------------------------------------------------
 

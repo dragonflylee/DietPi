@@ -9321,7 +9321,7 @@ _EOF_
 			(( $G_HW_MODEL > 9 )) || /boot/dietpi/func/dietpi-set_hardware rpi-camera 1
 
 			# motionEye
-			G_EXEC_OUTPUT=1 G_EXEC pip3 install -U --pre motioneye
+			G_EXEC_OUTPUT=1 G_EXEC pip3 install -U motioneye
 			G_EXEC_OUTPUT=1 G_EXEC motioneye_init --skip-apt-update
 			G_EXEC systemctl stop motioneye
 

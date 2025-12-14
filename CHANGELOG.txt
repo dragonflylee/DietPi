@@ -1,5 +1,5 @@
 v9.20
-(2025-12-13)
+(2025-12-14)
 
 New software:
 - RustDesk Server | The signalling and relay server component for the RustDesk remote desktop system has been added to our software catalogue. Many thanks to @JappeHallunken for implementing this software option: https://github.com/MichaIng/DietPi/pull/7842

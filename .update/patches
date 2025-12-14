@@ -1175,8 +1175,7 @@ Patch_8_18()
 	# Update Allo GUI
 	if [[ -f '/boot/dietpi/.installed' ]] && grep -q '^[[:blank:]]*aSOFTWARE_INSTALL_STATE\[160\]=2' /boot/dietpi/.installed
 	then
-		G_DIETPI-NOTIFY 2 'Scheduling Allo GUI update to v14.3'
-		echo 160 >> /var/tmp/dietpi/dietpi-update_reinstalls
+		G_DIETPI-NOTIFY 2 'Preparing Allo GUI update to latest version'
 		getent passwd allo > /dev/null && G_EXEC userdel allo
 		# Pre-v14.0 database migration
 		if [[ -d '/mnt/dietpi_userdata/mysql/allo_db' ]] && G_EXEC_NOHALT=1 G_EXEC systemctl start mariadb
@@ -2129,7 +2128,7 @@ Patch_9_15()
 		dpkg-query -s 'linux-headers-edge-meson' &> /dev/null && packages+=('linux-headers-current-meson')
 		dpkg-query -s 'linux-libc-dev-edge-meson' &> /dev/null && packages+=('linux-libc-dev-current-meson')
 		G_AGI linux-{image,dtb}-current-meson "${packages[@]}" linux-u-boot-odroidc1-current
-		G_AGP linux-{image,dtb,headers,libc-dev}-edge-meson linux-u-boot-odroidc1-edge
+		G_AGP linux-{image,dtb,headers,libc-dev}-edge-meson
 
 	# NanoPi R5C/R6C
 	elif
@@ -2244,10 +2243,6 @@ Patch_9_16()
 			/boot/dietpi/func/dietpi-set_hardware serialconsole disable serial0
 		fi
 	fi
-
-	# Remove obsolete configs from pre-patches
-	[[ -f '/etc/apt/preferences.d/dietpi-armbian-tmp' ]] && G_EXEC rm /etc/apt/preferences.d/dietpi-armbian-tmp
-	[[ -f '/etc/apt/apt.conf.d/dietpi-armbian-tmp' ]] && G_EXEC rm /etc/apt/apt.conf.d/dietpi-armbian-tmp
 
 	# NanoPi 4/5/6 series: Repair faulty all component
 	if [[ $G_HW_MODEL =~ ^(68|76|79)$ && -f '/etc/apt/sources.list.d/dietpi.list' ]] && grep -Eq ' all .*/(legacy|vendor|current|edge)$' /etc/apt/sources.list.d/dietpi.list
@@ -2393,7 +2388,7 @@ Patch_9_17()
 	fi
 
 	# RK3588 migration to vendor kernel
-	if (( $G_HW_CPUID == 11 || $G_HW_MODEL == 90 )) && dpkg-query -s 'linux-image-legacy-rk35xx' &> /dev/null && ! dpkg-query -s 'linux-image-vendor-rk35xx' &> /dev/null && ! dpkg-query -s 'linux-image-current-rockchip64' &> /dev/null && ! dpkg-query -s 'linux-image-edge-rockchip64' &> /dev/null
+	if (( $G_HW_CPUID == 11 )) && dpkg-query -s 'linux-image-legacy-rk35xx' &> /dev/null && ! dpkg-query -s 'linux-image-vendor-rk35xx' &> /dev/null && ! dpkg-query -s 'linux-image-current-rockchip64' &> /dev/null && ! dpkg-query -s 'linux-image-edge-rockchip64' &> /dev/null
 	then
 		G_DIETPI-NOTIFY 2 'Migrating from legacy Linux 5.10 kernel to Linux 6.1 vendor kernel'
 		G_AGI linux-{image,dtb}-vendor-rk35xx
@@ -2401,7 +2396,7 @@ Patch_9_17()
 		dpkg-query -s 'linux-libc-dev-legacy-rk35xx' &> /dev/null && G_AGI linux-libc-dev-vendor-rk35xx
 		G_AGP linux-{image,dtb,headers,libc-dev}-legacy-rk35xx
 		# The /boot/dtb symlink has been found to be missing after kernel removed, despite a newer kernel being installed already. Assure it is present and correct.
-		[[ $(realpath '/boot/dtb') == '/boot/dtb-6.1.'* ]] || G_EXEC ln -sf /boot/dtb-6.1.* /boot/dtb
+		[[ $(realpath '/boot/dtb') == '/boot/dtb-6.1.'* ]] || G_EXEC ln -snf /boot/dtb-6.1.* /boot/dtb
 		# Migrate U-Boot as well
 		case $G_HW_MODEL in
 			78) G_AGI linux-u-boot-rock-5b-vendor;;
@@ -2422,7 +2417,6 @@ Patch_9_17()
 			80) G_AGI linux-u-boot-orangepi5-vendor;;
 			82) G_AGI linux-u-boot-orangepi5-plus-vendor;;
 			85) G_AGI linux-u-boot-rock-5a-vendor;;
-			90) G_AGI linux-u-boot-radxa-zero3-vendor;;
 			*) :;;
 		esac
 		/boot/dietpi/func/dietpi-set_hardware flash-u-boot-mmc
@@ -2647,6 +2641,100 @@ Patch_9_19()
 		then
 			G_DIETPI-NOTIFY 2 'Do not allow root user to use ProFTPD'
 			G_CONFIG_INJECT 'root' 'root' /etc/ftpusers
+		fi
+	fi
+}
+
+Patch_9_20()
+{
+	# Remove obsolete configs from pre-patches
+	[[ -f '/etc/apt/preferences.d/dietpi-armbian-tmp' ]] && G_EXEC rm /etc/apt/preferences.d/dietpi-armbian-tmp
+	[[ -f '/etc/apt/apt.conf.d/dietpi-armbian-tmp' ]] && G_EXEC rm /etc/apt/apt.conf.d/dietpi-armbian-tmp
+
+	# Radxa ZERO 3
+	if (( $G_HW_MODEL == 90 )) && dpkg-query -l | grep -Eq '^ii[[:blank:]]*linux-image-(legacy|vendor)-rk35xx[[:blank:]:]' && ! dpkg-query -l | grep -Eq '^ii[[:blank:]]*linux-image-(current|edge)-rockchip64[[:blank:]:]'
+	then
+		G_DIETPI-NOTIFY 2 'Migrating to "current" kernel branch with Linux 6.12'
+		local packages=()
+		dpkg-query -l | grep -Eq '^ii[[:blank:]]*linux-headers-(legacy|vendor)-rk35xx[[:blank:]:]' && packages+=('linux-headers-current-rockchip64')
+		dpkg-query -l | grep -Eq '^ii[[:blank:]]*linux-libc-dev-(legacy|vendor)-rk35xx[[:blank:]:]' && packages+=('linux-libc-dev-current-rockchip64')
+		G_AGI linux-{image,dtb}-current-rockchip64 "${packages[@]}" linux-u-boot-radxa-zero3-current
+		G_EXEC_OUTPUT=1 G_EXEC /boot/dietpi/func/dietpi-set_hardware flash-u-boot-mmc
+		G_AGP linux-{image,dtb,headers,libc-dev}-{legacy,vendor}-rk35xx
+		# The /boot/dtb symlink has been found to be missing after kernel removed, despite a newer kernel being installed already. Assure it is present and correct.
+		[[ -d '/boot/dtb' ]] || G_EXEC ln -snf /boot/dtb-6.12.* /boot/dtb
+	fi
+
+	G_DIETPI-NOTIFY 2 'Masking unnecessary systemd-firstboot service'
+	G_EXEC systemctl --no-reload mask systemd-firstboot
+
+	# Software updates, migrations and patches
+	if [[ -f '/boot/dietpi/.installed' ]]
+	then
+		# Aria2
+		if grep -q '^[[:blank:]]*aSOFTWARE_INSTALL_STATE\[132\]=2' /boot/dietpi/.installed
+		then
+			if grep -q '^[[:blank:]]*log=/var/log/aria2.log' /mnt/dietpi_userdata/aria2/aria2.conf
+			then
+				G_DIETPI-NOTIFY 2 'Disabling redundant Aria2 file logging'
+				G_EXEC sed --follow-symlinks -i -e '/^[[:blank:]]*log=/var/log/aria2.log/c\console-log-level=notice' -e '/^[[:blank:]]*log-level=/d' /mnt/dietpi_userdata/aria2/aria2.conf
+				G_EXEC rm -f /var/log/aria2.log
+			fi
+			if [[ -f '/usr/local/bin/aria2c' ]]
+			then
+				G_DIETPI-NOTIFY 2 'Replacing ancient own aria2c builds used up to Debian Jessie'
+				G_AG_CHECK_INSTALL_PREREQ aria2
+				G_EXEC rm /usr/local/bin/aria2c
+			fi
+		fi
+
+		# LazyLibrarian
+		if grep -q '^[[:blank:]]*aSOFTWARE_INSTALL_STATE\[169\]=2' /boot/dietpi/.installed && [[ -f '/etc/systemd/system/lazylibrarian.service' ]]
+		then
+			G_DIETPI-NOTIFY 2 'Fixing LazyLibrarian "Restart" button'
+			G_CONFIG_INJECT 'ExitType=' 'ExitType=cgroup' /etc/systemd/system/lazylibrarian.service '\[Service\]'
+		fi
+
+		# Fail2Ban
+		# - Debian Trixie's /etc/fail2ban/jail.d/defaults-debian.conf sets the [DEFAULT] banaction = nftables. This makes sense if the upstream default iptables was otherwise used, but it must not override any explicit choice.
+		# - If /etc/fail2ban/jail.conf sets anything different than [DEFAULT] banaction = iptables, it was obviously explicitly changed by admin or dietpi-software, and this choice must not be overridden.
+		if dpkg-query -l | grep -q '^ii[[:blank:]]*fail2ban[[:blank:]:]'
+		then
+			# jail.conf [DEFAULT] banaction
+			# shellcheck disable=SC2016
+			local conf_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.conf)
+			# Effective [DEFAULT] banaction
+			# shellcheck disable=SC2016
+			local used_banaction=$(sed -n '/^\[DEFAULT\]/,/^\[/{/^banaction[[:blank:]=]/h};${g;s/^banaction[[:blank:]=]*//p}' /etc/fail2ban/jail.{conf,d/*.conf,local,d/*.local} 2> /dev/null)
+
+			# If jail.conf does not set [DEFAULT] banaction = iptables, it is intentional, hence delete defaults-debian.conf to prevent override with nftables on Trixie
+			if [[ $conf_banaction != 'iptables'* ]]
+			then
+				G_DIETPI-NOTIFY 2 'Deleting conflicting Debian Fail2Ban jail config override'
+				G_EXEC rm -f /etc/fail2ban/jail.d/defaults-debian.conf
+				[[ $used_banaction == 'nftables'* ]] && ! dpkg-query -l | grep -q '^ii[[:blank:]]*nftables[[:blank:]:]' && G_EXEC systemctl restart fail2ban
+
+			# Else, if the effective [DEFAULT] banaction is nftables, assure that userland tools are installed
+			elif [[ $used_banaction == 'nftables'* ]] && ! dpkg-query -l | grep -q '^ii[[:blank:]]*nftables[[:blank:]:]'
+			then
+				G_DIETPI-NOTIFY 2 'Installing missing nftables userland tools for Fail2Ban'
+				G_AGI nftables
+			fi
+		fi
+
+		# BirdNET-Go
+		if grep -q '^[[:blank:]]*aSOFTWARE_INSTALL_STATE\[127\]=2' /boot/dietpi/.installed
+		then
+			G_DIETPI-NOTIFY 2 'Fixing local sound card detection for BirdNET-Go'
+			G_EXEC usermod -aG audio birdnet
+			G_EXEC sed --follow-symlinks -i '/^PrivateDevices=/d' /etc/systemd/system/birdnet.service
+		fi
+
+		# Update Allo GUI
+		if grep -q '^[[:blank:]]*aSOFTWARE_INSTALL_STATE\[160\]=2' /boot/dietpi/.installed
+		then
+			G_DIETPI-NOTIFY 2 'Scheduling Allo GUI update to latest version'
+			G_EXEC eval 'echo 160 >> /var/tmp/dietpi/dietpi-update_reinstalls'
 		fi
 
 		# Pi-hole v6 migration

@@ -21,7 +21,7 @@ $FP_SCRIPT	bluetooth		enable/disable
 $FP_SCRIPT	serialconsole		enable/disable	[(tty(S|AMA|SAC|AML|SC|GS|FIQ|MV)|hvc)[0-9]] (optional Serial/UART device)
 $FP_SCRIPT	i2c			enable/disable/khz
 $FP_SCRIPT	spi			enable/disable
-$FP_SCRIPT	soundcard		target_card (non-matching name for reset to default). Add '-eq' to target_card string to enable ALSA equalizer on card. HW:x,x (specify target card and device index eg: HW:9,1)
+$FP_SCRIPT	soundcard		target_card (non-matching name for reset to default). Add '-eq' to target_card string to enable ALSA equalizer on card. hw:x,y (specify target card and device index eg: hw:0,0)
 $FP_SCRIPT	remoteir		odroid_remote/justboom_ir_remote # Odroid/RPi only
 $FP_SCRIPT	lcdpanel		target_panel (\"none\" to remove all)
 $FP_SCRIPT	headless		enable/disable
